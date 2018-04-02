@@ -456,9 +456,10 @@ Output: g - gini coefficient
 def getGiniCoef(df, type='repo'):
     df.columns = ['id', 'time', 'event' ,'user', 'repo']
     df = df[['repo', 'user']].groupby([type]).count()
+    df.columns = ['counts']
     df = df.reset_index()
 
-    values = df[type].values
+    values = df['counts'].values
     values = np.sort(np.array(values))
 
     cdf = np.cumsum(values) / float(np.sum(values))
@@ -488,8 +489,9 @@ Output: p - Palma Coefficient
 def getPalmaCoef(df, type='repo'):
     df.columns = ['id','time', 'event', 'user', 'repo']
     df = df[['repo', 'user']].groupby([type]).count()
+    df.columns = ['counts']
     df = df.reset_index()
-    values = df[type].values
+    values = df['counts'].values
     values = np.sort(np.array(values))
     cdf = np.cumsum(values) / float(np.sum(values))
     percent_nodes = np.arange(1, len(values) + 1) / float(len(values))
