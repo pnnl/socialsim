@@ -84,7 +84,6 @@ Output: A dataframe with the user ids and number events for that user
 '''
 def getUserPopularity(df,k=10,metadata_file = ''):
 
-
     if metadata_file != '':
         repo_metadata = pd.read_csv(metadata_file)
         repo_metadata = repo_metadata[['full_name_h','owner.login_h']]
@@ -93,13 +92,11 @@ def getUserPopularity(df,k=10,metadata_file = ''):
     df.columns = ['time', 'event','user', 'repo']
     df['value'] = 1
     
-    repo_popularity = df.groupby('repo')['value'].sum().reset_index()
-
+    repo_popularity = df[df['event'].isin(['ForkEvent','WatchEvent'])].groupby('repo')['value'].sum().reset_index()
 
     if metadata_file != '':
         merged = repo_popularity.merge(repo_metadata,left_on='repo',right_on='full_name_h',how='left')
     else:
-        repo_popularity = df[df['event'] != 'CreateEvent'].groupby('repo')['value'].sum().reset_index()
         user_repos = df[df['event'] == 'CreateEvent'].sort_values('time').drop_duplicates(subset='repo',keep='first')
         user_repos = user_repos[['user','repo']]
         user_repos.columns = ['owner.login_h','repo']

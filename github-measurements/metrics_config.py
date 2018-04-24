@@ -65,7 +65,7 @@ measurement_params = {
         "question": '25',
         "scale": "population",
         "node_type":"user",
-        "filters": {"event": popularity_events},
+        "filters": {"event": popularity_events + ['CreateEvent']},
         "measurement": named_partial(UserCentricMeasurements.getUserPopularity, k=5000),
         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.95)}
     },
@@ -429,7 +429,6 @@ def main():
     #run all assigned repo-centric metrics with specific nodes for the node-level measurements
     metrics = run_all_metrics(ground_truth,simulation,node_type="repo",repos=['3mGSybhub0IE-iZ0nOcOmg/fxFnpSLfvseMwBr1Z3NPkw','B8ZJ9zQBfx4zJyuG6QCWcQ/73uOGPnes5YM9RW6Bst3GQ'])
     pprint.pprint(metrics)
-
 
 
 if __name__ == "__main__":
