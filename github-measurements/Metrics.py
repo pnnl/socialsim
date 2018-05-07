@@ -291,8 +291,10 @@ def rmse(ground_truth, simulation, join='inner', fill_value=0):
 
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
 
-    return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean())
-
+    if len(df.index) > 0:
+        return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean())
+    else:
+        return None
 
 def r2(ground_truth, simulation, join='inner', fill_value=0):
     """
@@ -307,8 +309,10 @@ def r2(ground_truth, simulation, join='inner', fill_value=0):
 
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
 
-    return r2_score(df["value_gt"],df["value_sim"])
-
+    if len(df.index) > 0:
+        return r2_score(df["value_gt"],df["value_sim"])
+    else:
+        return None
 
 def pearson(ground_truth, simulation, join='inner', fill_value=0):
     """
@@ -323,8 +327,10 @@ def pearson(ground_truth, simulation, join='inner', fill_value=0):
 
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
 
-    return pearsonr(df["value_gt"],df["value_sim"])
-
+    if len(df.index) > 0:
+        return pearsonr(df["value_gt"],df["value_sim"])
+    else:
+        return None
 
 def ks_test(ground_truth, simulation):
     """
