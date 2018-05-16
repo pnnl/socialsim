@@ -38,7 +38,7 @@ Inputs: DataFrame - Data
 Output: A list (array) of deltas in days
 '''
 
-def getRepoDiffusionDelay(df,eventType=None,unit='s',metadata_file = '', plot=False, saveData=False):
+def getRepoDiffusionDelay(df,eventType=None,unit='h',metadata_file = '', plot=False, saveData=False):
 
     if metadata_file != '':
         repo_metadata = pd.read_csv(metadata_file)
