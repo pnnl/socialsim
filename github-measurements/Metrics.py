@@ -253,8 +253,6 @@ def rbo_for_te(ground_truth,simulation,idx,wt,ct):
         if (grp in simulation):
             count += 1
             ent_sm = ['-'.join(list(tups[0])) if len(tups[0]) == 2 else tups[0] for tups in simulation[grp]]
-            print('ent_gt',ent_gt)
-            print('ent_sm',ent_sm)
             metric += rbo_score(ent_gt,ent_sm,wt)
 
     if (count > 0):
