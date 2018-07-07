@@ -4,6 +4,14 @@ This repo contains scripts needed to run the measurements and metrics for the So
 
 ## Scripts
 
+Update 07/06/18: The up-to-date versions of the measurements and metrics scripts can be found in github-measurements.  The previously released version is provided in github-measurement-old.  The below instructions correspond to the version in github-measurements. This new version requires several PKL files which are hosted on the Metrics Release v1 page on the SocialSim wiki:
+
+1. communities.pkl
+2. filtRepos-test.pkl﻿
+3. filtUsers-test.pkl﻿
+
+These files should be downloaded and placed in the data directory in github-measurements. 
+
 ### metrics_config.py
 
 Contains measurement and metric configuration parameters including measurement to metric assignments and provides functionality
@@ -13,7 +21,7 @@ to run the metrics for a selected measurement and to run the full set of assigne
 
 The metric to measurement assignments are defined in the measurement_params dictionary. 
 Each dictionary element defines the metric assignments for a single measurement, with the key indicating the name of the 
-measurement and the value specifying the filters, measurement function, and metrics functions for the metric calculation.
+measurement and the value specifying the measurement function, measurement function arguments, and metrics functions for the metric calculation.
 For example, here is the specification of a single measurement in this format:
 
 ```python
@@ -22,8 +30,8 @@ For example, here is the specification of a single measurement in this format:
         'question': '17',
         "scale": "population",
         "node_type":"user",
-        "filters": {"event": contribution_events},
-        "measurement": UserCentricMeasurements.getUserUniqueRepos,
+        "measurement": "getUserUniqueRepos",
+	"measurement_args":{"eventType":contribution_events},
         "metrics": { 
             "js_divergence": named_partial(Metrics.js_divergence, discrete=False),
             "rmse": Metrics.rmse,
@@ -33,35 +41,48 @@ For example, here is the specification of a single measurement in this format:
 ```
 
 This measurement is related to the number of unique repos that users contribute to (Question #17), which is a user-centric 
-measurement at the population level.  The "filters" keyword specifies that the data should be pre-filtered on the 
-"event" field  to include a specified list of event types.  The "measurement" keyword specifies the measurement function to 
-apply, while the "metrics" keyword provides a dictionary of each of the metrics that should be applied for this measurement.
+measurement at the population level.  The "measurement" keyword specifies the measurement function to 
+apply, and the "measurement_args" keywords specifies the arguments to the measurement function in dictionary format.  The "metrics" keyword provides a dictionary of each of the metrics that should be applied for this measurement.
+
+#### Measurements Class
+
+Measurements are calculated on a data set by employing the Measurements class (implemented in Measurements.py).  To instantiate a measurements object for particular data set (either simulation or ground truth data):
+
+```python
+#create measurement object from data frame 
+measurement = Measurement(data_frame)
+#create measurement object from csv file
+measurement = Measurement(csv_file_name)
+
+#create measurement object with specific list of nodes to calculate node-level measurements on
+measurement = Measurement(data_frame,interested_users=['user_id1'],interested_repos=['repo_id1'])
+```
+
+This object contains the methods for calculating all of the measurements.  For example, the user unique repos measurement can be calculated as follows:
+
+```python
+result = measurement.getUserUniqueRepos(eventType=contribution_events)
+```
 
 #### Running a Single Measurement
 
 The `run_metrics` function can be used to run all the relevant metrics for a given measurement based on the 
-measurement_params configuration.  This function takes the ground_truth and simulation data in the 4-column data frame format
-("time","eventType","userID","repoID") and the name of the measurement as listed in the keywords of measurement_params. 
+measurement_params configuration, which contains the parameters to be used for evaluation during the challenge event.  This function takes two Measurement objects as input, one for the ground truth and one for the simulation, and the name of the measurement as listed in the keywords of measurement_params. It returns the measurement results for the ground truth and the simulation and the metric comparison.
+
 For example:
 
 ```python                                                                                                            
+ground_truth = Measurement(ground_truth_data_frame)
+simulation = Measurement(simulation_data_frame)
 gt_measurement, sim_measurement, metric = run_metrics(ground_truth, simulation, "repo_contributors")
 ```
 
-The default behavior for the implementation of the node-level measurements is to select the single most-active node 
-for evaluation.  In order to specify which users or repos the node-level measurements should be calculated for, the users and repos 
-parameters can be used by providing a list of users (login_h) and repos (full_name_h).  For example,
-
-```python
-gt_measurement, sim_measurement, metric = run_metrics(ground_truth, simulation, 
-                                                      "user_activity_timeline",
-                                                      users=['PeZv4Yha0B_17dV8SAioFA'])
-```
+If the Measurement objects do not have the interested_users and interested_repos keywords set, then there will be no node-level measurements calculated.
 
 #### Running All Measurements
 
 To run the metrics for all the measurements that are defined in the measurement_params configuration, the run_all_metrics
-function can be used.  To run all the metrics for all the measurements on a ground truth data frame and simulation data frame:
+function can be used.  To run all the metrics for all the measurements on a ground truth Measurements object and simulation data Measurements object:
 
 ```python
 metrics = run_all_metrics(ground_truth,simulation)
@@ -74,29 +95,28 @@ You can additionally specify specific subsets of the measurements by scale ("nod
 metrics = run_all_metrics(ground_truth,simulation,scale="population",node_type="user")
 ```
 
-Additionally, the user and repo arguments for specifying the nodes to use for node-level measurements can be passed to this
-function.
-
-```python
-metrics = run_all_metrics(ground_truth,simulation,node_type="repo",
-                          repos=['3mGSybhub0IE-iZ0nOcOmg/fxFnpSLfvseMwBr1Z3NPkw',
-                                 'B8ZJ9zQBfx4zJyuG6QCWcQ/73uOGPnes5YM9RW6Bst3GQ'])
-```
-
 ### Metrics.py
 
 This script contains implementations of each metric for comparison of the output of the ground truth and simulation
 measurements.
 
+### Measurements.py
+
+This script contains the core Measurements class which performs intialization of all input data for measurement calculation.
+
 ### UserCentricMeasurements.py
 
-This script contains implementations of the user-centric measurements which take as input a dataframe in the 4-column format 
-("time","eventType","userID","repoID").
+This script contains implementations of the user-centric measurements inside the UserCentricMeasurements class.
 
 ### RepoCentricMeasurements.py
 
-This script contains implementations of the repo-centric measurements which take as input a dataframe in the 4-column format 
-("time","eventType","userID","repoID").
+This script contains implementations of the repo-centric measurements inside the RepoCentricMeasurements class.
+
+### CommunityCentricMeasurements.py
+
+This script contains implementations of the community-centric measurements inside the CommunityCentricMeasurements class.
+
+## Old Scripts
 
 ### TransferEntropy.py
 

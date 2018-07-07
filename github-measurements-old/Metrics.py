@@ -3,7 +3,7 @@ from sklearn.metrics import r2_score
 from scipy.spatial.distance import euclidean
 import statsmodels.api as sm
 import fastdtw as fdtw
-
+import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -78,15 +78,12 @@ def kl_divergence(ground_truth, simulation, discrete=False):
 
     """
 
-    if simulation is None:
-        return None
-
     # if data is numeric, compute histogram
     if not discrete:
 
         ground_truth, simulation = check_data_types(ground_truth, simulation)
 
-        bins = get_hist_bins(ground_truth, simulation,method='doane')
+        bins = get_hist_bins(ground_truth, simulation)
 
         ground_truth = np.histogram(ground_truth, bins=bins)[0]
         simulation = np.histogram(simulation, bins=bins)[0]
@@ -98,8 +95,8 @@ def kl_divergence(ground_truth, simulation, discrete=False):
                                 suffixes=('_gt', '_sim'),
                                 how='outer').fillna(0)
 
-        ground_truth = df['value_gt'].values.astype(float)
-        simulation = df['value_sim'].values.astype(float)
+        ground_truth = df['value_gt'].as_matrix().astype(float)
+        simulation = df['value_sim'].as_matrix().astype(float)
         ground_truth = ground_truth / ground_truth.sum()
         simulation = simulation / simulation.sum()
 
@@ -137,8 +134,8 @@ def kl_divergence_smoothed(ground_truth, simulation, alpha=0.01, discrete=False)
                                 suffixes=('_gt', '_sim'),
                                 how='outer').fillna(0)
 
-        ground_truth = df['value_gt'].values.astype(float)
-        simulation = df['value_sim'].values.astype(float)
+        ground_truth = df['value_gt'].as_matrix().astype(float)
+        simulation = df['value_sim'].as_matrix().astype(float)
         ground_truth = ground_truth / ground_truth.sum()
         simulation = simulation / simulation.sum()
 
@@ -154,19 +151,15 @@ def dtw(ground_truth, simulation):
     Dynamic Time Warping implemenation
     """
 
-
     try:
-        ground_truth = ground_truth['value'].values
-        simulation = simulation['value'].values
+        ground_truth = ground_truth['value'].as_matrix()
+        simulation = simulation['value'].as_matrix()
     except:
         ground_truth = np.array(ground_truth)
         simulation = np.array(simulation)
 
-    if len(simulation) > 0:
-        dist = fdtw.dtw(ground_truth.tolist(), simulation, dist=euclidean)[0]
-    else:
-        dist = None
 
+    dist = fdtw.dtw(ground_truth.tolist(), simulation, dist=euclidean)[0]
     return dist
 
 
@@ -176,8 +169,8 @@ def fast_dtw(ground_truth, simulation):
     """
 
     try:
-        ground_truth = ground_truth['value'].values
-        simulation = simulation['value'].values
+        ground_truth = ground_truth['value'].as_matrix()
+        simulation = simulation['value'].as_matrix()
     except:
         ground_truth = np.array(ground_truth)
         simulation = np.array(simulation)
@@ -187,7 +180,7 @@ def fast_dtw(ground_truth, simulation):
     return dist
 
 
-def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
+def js_divergence(ground_truth, simulation, discrete=False, base=np.e):
     """
     Jensen-Shannon Divergence implemenation
     A symmetric variant on KL Divergence which also avoids infinite outputs
@@ -198,18 +191,14 @@ def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
     base - the logarithmic base to use
     """
 
-    if simulation is None or len(simulation) == 0:
-        return None
-
     if not discrete:
-
 
         ground_truth, simulation = check_data_types(ground_truth, simulation)
 
-        bins = get_hist_bins(ground_truth, simulation,method='doane')
+        bins = get_hist_bins(ground_truth, simulation)
 
-        ground_truth = np.histogram(ground_truth, bins=bins)[0].astype(float)
-        simulation = np.histogram(simulation, bins=bins)[0].astype(float)
+        ground_truth = np.histogram(ground_truth, bins=bins)[0]
+        simulation = np.histogram(simulation, bins=bins)[0]
 
     else:
 
@@ -218,13 +207,10 @@ def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
                                 suffixes=('_gt', '_sim'),
                                 how='outer').fillna(0)
 
-        ground_truth = df['value_gt'].values.astype(float)
-        simulation = df['value_sim'].values.astype(float)
-    
-        
-    ground_truth = ground_truth / ground_truth.sum()
-    simulation = simulation / simulation.sum()
-
+        ground_truth = df['value_gt'].as_matrix().astype(float)
+        simulation = df['value_sim'].as_matrix().astype(float)
+        ground_truth = ground_truth / ground_truth.sum()
+        simulation = simulation / simulation.sum()
 
     if len(ground_truth) == len(simulation):
         m = 1. / 2 * (ground_truth + simulation)
@@ -232,35 +218,6 @@ def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
     else:
         print('Two distributions must have same length')
         return None
-
-
-def rbo_for_te(ground_truth,simulation,idx,wt,ct):
-
-    ground_truth = ground_truth[idx]
-    simulation = simulation[idx]
-    
-    metric = 0.0
-    count = 0
-
-    for grp in ground_truth.keys():
-
-
-        ent_gt = ['-'.join(list(tups[0])) if len(tups[0]) == 2 else tups[0] for tups in ground_truth[grp]]
-        if (len(ent_gt) < ct):
-            continue
-
-        ent_sm = []
-        if (grp in simulation):
-            count += 1
-            ent_sm = ['-'.join(list(tups[0])) if len(tups[0]) == 2 else tups[0] for tups in simulation[grp]]
-            print('ent_gt',ent_gt)
-            print('ent_sm',ent_sm)
-            metric += rbo_score(ent_gt,ent_sm,wt)
-
-    if (count > 0):
-        metric = metric/float(count)
-
-    return metric
 
 
 def rbo_score(ground_truth, simulation, p=0.95):
@@ -276,7 +233,6 @@ def rbo_score(ground_truth, simulation, p=0.95):
         p = 0 means only the first element is considered
         p = 1 means all ranks are weighted equally
     """
-
 
     try:
         ground_truth = ground_truth.index.tolist()
@@ -332,10 +288,6 @@ def rmse(ground_truth, simulation, join='inner', fill_value=0):
     join - type of join to perform between ground truth and simulation
     fill_value - fill value for non-overlapping joins
     """
-    if type(ground_truth) is list:
-	    ground_truth = np.nan_to_num(ground_truth)
-	    simulation = np.nan_to_num(simulation)
-	    return np.sqrt(((np.asarray(ground_truth) - np.asarray(simulation)) ** 2).mean())
 
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
 
@@ -343,7 +295,6 @@ def rmse(ground_truth, simulation, join='inner', fill_value=0):
         return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean())
     else:
         return None
-
 
 def r2(ground_truth, simulation, join='inner', fill_value=0):
     """
@@ -355,18 +306,13 @@ def r2(ground_truth, simulation, join='inner', fill_value=0):
     join - type of join to perform between ground truth and simulation
     fill_value - fill value for non-overlapping joins
     """
-    if type(ground_truth) is list:
-    	ground_truth = np.nan_to_num(ground_truth)
-    	simulation = np.nan_to_num(simulation)
-    	return np.sqrt(((np.asarray(ground_truth) - np.asarray(simulation)) ** 2).mean())
 
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
 
-    if df.empty:
-        return None
-    else:
+    if len(df.index) > 0:
         return r2_score(df["value_gt"],df["value_sim"])
-
+    else:
+        return None
 
 def pearson(ground_truth, simulation, join='inner', fill_value=0):
     """
@@ -386,23 +332,15 @@ def pearson(ground_truth, simulation, join='inner', fill_value=0):
     else:
         return None
 
-
 def ks_test(ground_truth, simulation):
     """
     Kolmogorov-Smirnov test
     Meant for measurements which are continous or numeric distributions
     """
 
-    if simulation is None or len(simulation) == 0:
-        return None
-
     ground_truth, simulation = check_data_types(ground_truth,simulation)
 
-    try:
-        return ks_2samp(ground_truth,simulation).statistic
-    except:
-        return None
-
+    return ks_2samp(ground_truth,simulation).statistic
 
 def join_dfs(ground_truth,simulation,join='inner',fill_value=0):
 
@@ -422,8 +360,8 @@ def join_dfs(ground_truth,simulation,join='inner',fill_value=0):
                             how=join).fillna(fill_value)
 
     return(df)
-
-
+    
+    
 
 def get_metric_scores(ground_truth, simulation, measurement, metric, measurement_kwargs={}, metric_kwargs={}):
     """

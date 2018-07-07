@@ -8,7 +8,8 @@ import matplotlib.mlab as mlab
 from datetime import datetime
 import seaborn as sns
 import matplotlib.dates as dates
-
+import calendar
+from itertools import *
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
 
@@ -182,8 +183,6 @@ def plot_distribution_of_events(data,weekday,loc=False):
             continue
         tp[ele] = tp[ele]
     
-    import calendar
-    from itertools import *
     plt.clf()
     sns.set_style('whitegrid')
     sns.set_context('talk')
@@ -236,7 +235,6 @@ def plot_top_users(data, xlabel,ylabel,title, log=False,loc=False):
 def plot_activity_timeline(data,xlabel,ylabel,title, log=False,loc=False):
     p = data
     for u in users:
-        print p.columns
         p[p['user'] == u]['value'].plot(legend=False,logy=False,label=u)
 
     plt.xticks(fontsize=15)
