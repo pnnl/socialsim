@@ -3,7 +3,7 @@ from sklearn.metrics import r2_score
 from scipy.spatial.distance import euclidean
 import statsmodels.api as sm
 import fastdtw as fdtw
-
+import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 
