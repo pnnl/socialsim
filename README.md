@@ -10,7 +10,9 @@ Update 07/06/18: The up-to-date versions of the measurements and metrics scripts
 2. filtRepos-test.pkl﻿
 3. filtUsers-test.pkl﻿
 
-These files should be downloaded and placed in the data directory in github-measurements. 
+These files should be downloaded and placed in the directory github-measurements/data/. 
+
+Another major change is that the `run_metrics` and `run_all_metrics` functions no longer take data frames as input but instead take Measurement objects.  Examples of how to call these functions can be found below or in the main function of metrics_config.py.
 
 ### metrics_config.py
 
