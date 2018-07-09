@@ -269,16 +269,23 @@ class TEMeasurements():
     def getTimeSeriesUsersEvents(self,df,repoActors):
         
         df = df[df['repo'].isin(repoActors.keys())]
+
         timeseries = dict()
         for repo in repoActors.keys():
             tempdf = df[df['repo'] == repo]
+
             if len(tempdf) == 0:
                 timeseries[repo] = dict()
                 continue
             tempdf = df[df['user'].isin(repoActors[repo])]
+
+            if len(tempdf) == 0:
+                timeseries[repo] = dict()
+                continue
+
             tempdf['time'] = pd.to_datetime(tempdf['time'])
             tempdf['time'] = (tempdf['time'] - self.startTime).astype('timedelta64[s]')
-
+        
             tempdf = pd.DataFrame(tempdf[['user','event','time']].groupby(['user','event'])['time'].apply(list))
 
             tempdf = tempdf.reset_index()

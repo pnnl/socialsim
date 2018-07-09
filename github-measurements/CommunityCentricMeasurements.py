@@ -376,7 +376,7 @@ class CommunityCentricMeasurements():
     Output: Data frame of user burstiness values
     '''            
     def getUserBurstByCommunityHelper(self,df,eventType,thresh):
-
+        
         if eventType != None:
             df = df[df.event.isin(eventType)]
 
@@ -386,15 +386,23 @@ class CommunityCentricMeasurements():
         user_list = user_counts['user'][user_counts['event'] >= thresh]       
         df = df[df['user'].isin(user_list)]
 
+
         if len(df.index) > 0:
             #get interevent times for each user seperately
-            measurement = df.groupby('user').apply(lambda grp: (grp.time - grp.time.shift()).fillna(0)).reset_index()
+            if len(df['user'].unique()) > 1:
+                measurement = df.groupby('user').apply(lambda grp: (grp.time - grp.time.shift()).fillna(0)).reset_index()
+            else:
+                df['time'] = df['time'] - df['time'].shift().dropna()
+                measurement = df.copy()
+                
             measurement['value'] = measurement['time'] / np.timedelta64(1, 's')
         
             #calculate burstiness using mean and standard deviation of interevent times
             measurement = measurement.groupby('user').agg({'value':{'std':np.std,'mean':np.mean}})
+            
             measurement.columns = measurement.columns.get_level_values(1)
             measurement['burstiness'] = (measurement['std'] - measurement['mean']) / (measurement['std'] + measurement['mean'])
+            
 
             measurement = measurement[['burstiness']].dropna()
             measurement = measurement.reset_index()
