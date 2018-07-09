@@ -1,0 +1,9 @@
+fastdtw==0.3.2
+numpy==1.14.0
+statsmodels==0.8.0
+pathos==0.2.1
+pandas==0.23.1
+matplotlib==2.0.2
+scipy==0.19.1
+JPype1==0.6.3
+scikit_learn==0.19.1
