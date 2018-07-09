@@ -97,6 +97,8 @@ class UserCentricMeasurements(object):
 
         df['value'] = 1
 
+        repo_popularity = df.groupby('repo')['value'].sum().reset_index()
+
         if use_metadata:
             #merge repo popularity with the owner information in repo_metadata
             #drop data for which no owner information exists in metadata
@@ -104,15 +106,16 @@ class UserCentricMeasurements(object):
                                            how='left').dropna()
         elif df['repo'].str.match('.{22}/.{22}').all():
             #if all repo IDs have the correct format use the owner info from the repo id
-            repo_popularity = df.groupby('repo')['value'].sum().reset_index()
             repo_popularity['owner_id'] = repo_popularity['repo'].apply(lambda x: x.split('/')[0])
         else:
             #otherwise use creation event as a proxy for ownership
             user_repos = df[df['event'] == 'CreateEvent'].sort_values('time').drop_duplicates(subset='repo',keep='first')
             user_repos = user_repos[['user','repo']]
-            user_repos.columns = ['owner.login_h','repo']
-            merged = user_repos.merge(repo_popularity,on='repo',how='left')
-            
+            user_repos.columns = ['owner_id','repo']
+            if len(user_repos.index) >= 0:
+                repo_popularity = user_repos.merge(repo_popularity,on='repo',how='left')
+            else:
+                return None
 
         measurement = repo_popularity.groupby('owner_id').value.sum().sort_values(ascending=False).head(k)
         measurement = pd.DataFrame(measurement).sort_values('value',ascending=False)
