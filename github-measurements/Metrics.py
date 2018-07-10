@@ -237,6 +237,10 @@ def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
 def rbo_for_te(ground_truth,simulation,idx,wt,ct):
 
     ground_truth = ground_truth[idx]
+    
+    if len(simulation) == 0:
+        return 0.0
+
     simulation = simulation[idx]
     
     metric = 0.0
