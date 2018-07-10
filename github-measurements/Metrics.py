@@ -155,12 +155,15 @@ def dtw(ground_truth, simulation):
     """
 
 
+    df = join_dfs(ground_truth,simulation,join='outer',fill_value=0.0)
+
     try:
-        ground_truth = ground_truth['value'].values
-        simulation = simulation['value'].values
+        ground_truth = df['value_gt'].values
+        simulation = df['value_sim'].values
     except:
         ground_truth = np.array(ground_truth)
         simulation = np.array(simulation)
+
 
     if len(simulation) > 0:
         dist = fdtw.dtw(ground_truth.tolist(), simulation, dist=euclidean)[0]
@@ -335,12 +338,15 @@ def rmse(ground_truth, simulation, join='inner', fill_value=0):
     join - type of join to perform between ground truth and simulation
     fill_value - fill value for non-overlapping joins
     """
+
+    
     if type(ground_truth) is list:
 	    ground_truth = np.nan_to_num(ground_truth)
 	    simulation = np.nan_to_num(simulation)
 	    return np.sqrt(((np.asarray(ground_truth) - np.asarray(simulation)) ** 2).mean())
 
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
+
 
     if len(df.index) > 0:
         return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean())
