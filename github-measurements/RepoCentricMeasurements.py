@@ -82,6 +82,11 @@ class RepoCentricMeasurements(object):
             df = df[df.event.isin(eventType)]
             
 
+        if len(df.index) == 0: 
+            return None
+
+        repo = df['repo'].iloc[0]
+
         #use metadata for repo creation dates if available
         if self.useRepoMetaData:
             df = df.merge(self.repoMetaData,left_on='repo',right_on='repo',how='left')
@@ -544,12 +549,17 @@ class RepoCentricMeasurements(object):
     def propUserContinueHelper(self,df,eventType):
         
         if not eventType is None:            
-            data = df[~df['event'].isin(eventType)]
+            data = df[df['event'].isin(eventType)]
 
 
         if len(data.index) > 1:
             data['value'] = 1
-            measurement = data.groupby(['user','repo']).apply(lambda grp: grp.value.cumsum()).reset_index()
+            grouped = data.groupby(['user','repo'])
+            if grouped.ngroups > 1:
+                measurement = grouped.apply(lambda grp: grp.value.cumsum()).reset_index()
+            else:
+                data['value'] = data['value'].cumsum()
+                measurement = data.copy()
             grouped = measurement.groupby(['user','repo']).value.max().reset_index()
             grouped.columns = ['user','repo','num_events']
             measurement = measurement.merge(grouped,on=['user','repo'])
