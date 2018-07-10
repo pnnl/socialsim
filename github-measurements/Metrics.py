@@ -198,8 +198,6 @@ def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
     base - the logarithmic base to use
     """
 
-    print('gt',ground_truth)
-    print('sim',simulation)
 
     if simulation is None or len(simulation) == 0 or ground_truth is None or len(ground_truth) == 0:
         return None
