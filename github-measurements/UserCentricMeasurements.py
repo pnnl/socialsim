@@ -4,6 +4,7 @@ from datetime import datetime
 from multiprocessing import Pool
 from functools import partial
 from pathos import pools as pp
+import pickle
 
 '''
 This class implements user centric method. Each function will describe which metric it is used for according
@@ -97,13 +98,14 @@ class UserCentricMeasurements(object):
 
         df['value'] = 1
 
-        repo_popularity = df.groupby('repo')['value'].sum().reset_index()
+        repo_popularity = df[df.event.isin(['WatchEvent','ForkEvent'])].groupby('repo')['value'].sum().reset_index()
 
-        if use_metadata:
+        if use_metadata and self.useRepoMetaData:
             #merge repo popularity with the owner information in repo_metadata
             #drop data for which no owner information exists in metadata
-            merged = repo_popularity.merge(self.repoMetaData,left_on='repo',right_on='full_name_h',
+            repo_popularity = repo_popularity.merge(self.repoMetaData,left_on='repo',right_on='repo',
                                            how='left').dropna()
+            
         elif df['repo'].str.match('.{22}/.{22}').all():
             #if all repo IDs have the correct format use the owner info from the repo id
             repo_popularity['owner_id'] = repo_popularity['repo'].apply(lambda x: x.split('/')[0])
@@ -117,8 +119,10 @@ class UserCentricMeasurements(object):
             else:
                 return None
 
+           
         measurement = repo_popularity.groupby('owner_id').value.sum().sort_values(ascending=False).head(k)
         measurement = pd.DataFrame(measurement).sort_values('value',ascending=False)
+        
         return measurement
 
 
@@ -235,6 +239,7 @@ class UserCentricMeasurements(object):
         df = self.main_df_opt
 
         if not df is None and 'PullRequestEvent' in self.main_df.event.values:
+
             df = df[self.main_df.event.isin(eventType)]
             users_repos = self.main_df[self.main_df.event.isin(eventType)]
 
@@ -259,12 +264,10 @@ class UserCentricMeasurements(object):
                 if col not in outcomes.columns:
                     outcomes[col] = 0
 
-
             outcomes['total'] = outcomes['accepted'] +  outcomes['rejected']
             outcomes['value'] = outcomes['accepted'] / outcomes['total']
             outcomes = outcomes.reset_index()
             outcomes = outcomes[outcomes['total'] >= thresh]
-
 
             if len(outcomes.index) > 0:
                 #calculate the average acceptance rate for each user across their repos
@@ -273,7 +276,6 @@ class UserCentricMeasurements(object):
                 measurement = None
         else:
             measurement = None
-
 
         return measurement
     

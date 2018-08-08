@@ -100,7 +100,11 @@ class TEMeasurements():
             teNullDist = teCalc.computeSignificance(nReps);
             teNullMean = teNullDist.getMeanOfDistribution()
             teNullStd = teNullDist.getStdOfDistribution()
-            z_score = (te-teNullMean)/teNullStd
+            if teNullStd > 0:
+                z_score = (te-teNullMean)/teNullStd
+            else:
+                z_score = 0.0
+                te = 0.0
 
             if (z_score < 3.0):
                 te = 0.0

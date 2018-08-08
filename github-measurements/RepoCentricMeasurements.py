@@ -6,7 +6,7 @@ from multiprocessing import Pool
 from functools import partial
 from pathos import pools as pp
 from multiprocessing import Pool
-
+import pickle
 '''
 This class implements repo centric methods.
 These metrics assume that the data is in the order id,created_at,type,actor.id,repo.id
@@ -505,9 +505,18 @@ class RepoCentricMeasurements(object):
 
         measurement = df.groupby(['repo','user']).apply(user_repo_cumulative_count).reset_index()
 
-        if self.previous_event_counts != None:
+
+        grouped = measurement.groupby(['repo','user','time']).value.mean().reset_index()
+        grouped.columns = ['repo','user','time','value2']
+        measurement = measurement.merge(grouped,on=['repo','user','time'],how='left')
+        measurement['value'] = measurement['value2']
+        measurement = measurement.drop('value2',axis=1)
+
+
+        if self.previous_event_counts is not None:
             measurement = measurement.merge(self.previous_event_counts,on=['user','repo'],how='left').fillna(0)
             measurement['value'] = measurement['value'] + measurement['count']
+
 
         measurement = measurement[measurement['event'].isin(['IssuesEvent','PushEvent'])]
 
@@ -535,6 +544,7 @@ class RepoCentricMeasurements(object):
             measurement.columns = ['repo','num_events_binned','value']
         else:
             measurement = None
+
 
         return(measurement)
 
@@ -564,11 +574,16 @@ class RepoCentricMeasurements(object):
             grouped.columns = ['user','repo','num_events']
             measurement = measurement.merge(grouped,on=['user','repo'])
             measurement['last_event'] = measurement['value'] == measurement['num_events']
-            
+
+
+            if self.previous_event_counts is not None:
+                measurement = measurement.merge(self.previous_event_counts,on=['user','repo'],how='left').fillna(0)
+                measurement['value'] = measurement['value'] + measurement['count']
+
             bins = np.logspace(-1,2.5,30)
             measurement['num_actions'] = pd.cut(measurement['value'],bins).apply(lambda x: np.floor(x.right)).astype(float)
             measurement['last_event'] = ~measurement['last_event']
-            measurement = measurement.groupby(['repo','num_actions']).last_event.mean().reset_index()
+            measurement = measurement.groupby(['repo','num_actions']).last_event.mean().astype(float).reset_index()
             measurement.columns = ['repo','num_actions','value']
         else:
             measurement = None

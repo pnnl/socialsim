@@ -22,8 +22,11 @@ class CommunityCentricMeasurements():
     '''
     def loadMetaData(self):
         if self.useUserMetaData:
-            self.created_at_df = self.userMetaData[['user','created_at']]
-            self.locations_df = self.userMetaData[['user','location']]
+            self.created_at_df = self.userMetaData[['user','created_at']] 
+            try:
+                self.locations_df = self.userMetaData[['user','city','country']]
+            except:
+                self.locations_df = self.userMetaData[['user','location']]
             
     '''
     This method loads the community dictionary from the specified pickle file.
@@ -33,34 +36,39 @@ class CommunityCentricMeasurements():
      Inputs: path - file path of pickle file
     '''
     def loadCommunities(self,path):
-        with open(path, 'rb') as handle:
-            self.comDic = pkl.load(handle)
+        if path != '':
+            with open(path, 'rb') as handle:
+                self.comDic = pkl.load(handle)
+                for key in self.comDic.keys():
+                    print self.comDic[key].keys()
+        else:
+            self.comDic = {"topic":{"crypto":self.main_df['repo'].unique()}}
 
     '''
     This method subsets the full data frame based on community membership of repos or users.
     Inputs: path - file path to pickle file containing community lists
     Outputs: A dictionary containing a data frame for each community
     '''
-    def getCommunities(self,path='data/communities.pkl'):
+    def getCommunities(self,path='data/communityDic.pkl'):
         self.loadMetaData() 
         self.loadCommunities(path)
         comValuesDic = {}
-        repoOrent = ['languages','topics']
-        userOrent = ['location','companies']
+        repoOrent = ['topic']
+        userOrent = ['city','country','company']
         
         #repo-focused communities
         for community in repoOrent:
             if community in self.comDic.keys():
                  for key in self.comDic[community]:
-                    d = self.main_df[self.main_df['repo'].isin(self.comDic[community][key])]
-                    comValuesDic[key] = d
+                     d = self.main_df[self.main_df['repo'].isin(self.comDic[community][key])]
+                     comValuesDic[key] = d
 
         #user-focused communities
         for community in userOrent:
             if community in self.comDic.keys():
                  for key in self.comDic[community]:
-                    d = self.main_df[self.main_df['user'].isin(self.comDic[community][key])]
-                    comValuesDic[key] = d
+                     d = self.main_df[self.main_df['user'].isin(self.comDic[community][key])]
+                     comValuesDic[key] = d
                     
         return comValuesDic
 
@@ -208,6 +216,7 @@ class CommunityCentricMeasurements():
         if eventType != None:
             df = df[df['event'].isin(eventType)]
 
+
         #get interevent times
         df['diff'] = df['time'].diff()
         df['diff'] = df['diff'] / np.timedelta64(1, 's')
@@ -215,7 +224,11 @@ class CommunityCentricMeasurements():
         
         mean = df['diff'].mean()
         std = df['diff'].std()
-        burstiness = (std - mean) / (std + mean)
+
+        if std + mean != 0:
+            burstiness = (std - mean) / (std + mean)
+        else:
+            return None
 
         if not np.isnan(burstiness):
             return burstiness
@@ -294,8 +307,11 @@ class CommunityCentricMeasurements():
     '''        
     def ageOfAccountsHelper(self,df,eventType):
         if self.useUserMetaData:
+
+
             if eventType != None:
                 df  = df[df.event.isin(eventType)]
+
 
             df = df.merge(self.created_at_df, left_on='user', right_on='user', how='inner')
             df = df.sort_values(['time'])
@@ -303,6 +319,8 @@ class CommunityCentricMeasurements():
             #get user account age at the time of each event
             df['age'] = df['time'].sub(df['created_at'], axis=0)
             df['age'] = df['age'].astype('timedelta64[D]')
+
+
             return df['age']
         else:
             warnings.warn('Skipping ageOfAccountsHelper because metadata file is required')
@@ -338,15 +356,18 @@ class CommunityCentricMeasurements():
 
             #merge events data with user location metadata
             merge = df.merge(self.locations_df, left_on='user', right_on='user', how='inner')
-            merge = merge[['user','location']].groupby(['location']).count()
+            merge = merge[['user','country']].groupby(['country']).count()
+            #merge = merge[['user','location']].groupby(['location']).count()
             merge.columns = ['value']
             merge = merge.sort_values('value',ascending=False).reset_index()
 
             #set rare locations to "other"
             thresh = 0.007*merge.value.sum()
-            merge['location'][merge['value'] < thresh] = 'other'
+            merge['country'][merge['value'] < thresh] = 'other'
+            #merge['location'][merge['value'] < thresh] = 'other'
             
-            grouped = merge.groupby('location').sum()
+            grouped = merge.groupby('country').sum()
+            #grouped = merge.groupby('location').sum()
 
             return grouped.reset_index()
         else:

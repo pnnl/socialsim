@@ -19,7 +19,7 @@ def named_partial(func, *args, **kwargs):
 contribution_events = ["PullRequestEvent", "PushEvent", "IssuesEvent","IssueCommentEvent","PullRequestReviewCommentEvent","CommitCommentEvent","CreateEvent"]
 popularity_events = ["WatchEvent", "ForkEvent"]
 
-measurement_params = {
+user_measurement_params = {
     ### User Centric Measurements
      "user_unique_repos": {
          'question': '17',
@@ -39,7 +39,7 @@ measurement_params = {
          "node_type":"user",
          "measurement": "getUserActivityTimeline",
          "measurement_args":{"eventType":contribution_events},
-         "metrics": {"rmse": Metrics.rmse,
+         "metrics": {"rmse": named_partial(Metrics.rmse,join='outer'),
                      "ks_test": Metrics.ks_test,
                      "dtw": Metrics.dtw}
     
@@ -70,7 +70,7 @@ measurement_params = {
          "scale": "population",
          "node_type":"user",
          "measurement": "getUserPopularity",
-         "measurement_args":{"eventType":popularity_events + ['CreateEvent']},
+         "measurement_args":{"eventType":popularity_events + ['CreateEvent'],"use_metadata":True},
          "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
      },
 
@@ -450,7 +450,8 @@ te_measurement_params = {
             "scale":"te",
             "node_type":"user",
             "measurement":"computeTEUserEvents",
-            "metrics": {"rbo": named_partial(Metrics.rbo_for_te, idx = 0, wt = 0.9 ,ct = 25)}
+#            "metrics": {"rbo": named_partial(Metrics.rbo_for_te, idx = 0, wt = 0.9 ,ct = 25)}
+            "metrics": {"rbo": named_partial(Metrics.rbo_for_te, idx = 0, wt = 0.8 ,ct = 15)}
             },  
     
     "repo_interactions":{
@@ -471,9 +472,12 @@ te_measurement_params = {
     }
 
 
+measurement_params = {}
+measurement_params.update(user_measurement_params)
 measurement_params.update(repo_measurement_params)
 measurement_params.update(community_measurement_params)
 measurement_params.update(te_measurement_params)
+
 
 
 def run_metrics(ground_truth, simulation, measurement_name,measurement_on_gt=None):
@@ -587,20 +591,47 @@ def main():
 
     ###READ IN ground_truth and simulation here
     #Data should be in 4-column format: time, event, user, repo
-    #ground_truth, simulation = load_data(weeks=True)
+    #ground_truth, simulation = load_data(challenge=True)
 
-    user_ids = ['RIH-7636kqldbT3q-mKVNg','RNCPDvxzygRe8m7ENWg9Kw','ZjuuEc-QjH5b4E3FtQencw','_Qc4tzHyLBsDFu-q4HpVnw']
-    repo_ids = ['sG2sD5eAH3ojlZYCsX3hJg/sG2sD5eAH3ojlZYCsX3hJg','DXUQl8d5BBrhwGo5eU5d5Q/iS-SlfdKFS3N_iSpaYLX3Q',
-                'x9BrCoUrzYi11O-5Y-tFzg/2c9v3EnK2YrZcVgb0shFyQ','2-scMrZv13F95YPZmfieww/1EaArWHXzf8AhyhA34CX6w']
+    #user and repo node IDs
+    user_ids = pd.read_csv('baseline_challenge_data/selected_users_julychallenge.txt',header=None)
+    user_ids = user_ids[0].tolist()
+    repo_ids = pd.read_csv('baseline_challenge_data/selected_repos_julychallenge.txt',header=None)
+    repo_ids = repo_ids[0].tolist()
+    
+    #user and repo metadata
+    repo_meta = 'baseline_challenge_data/repo_meta_data_full.csv'
+    user_meta = 'baseline_challenge_data/user_meta_data_all.csv'
+    
+    #users and repos for TE measurements
+    user_filt = 'baseline_challenge_data/filtUsers-baseline.pkl'
+    repo_filt = 'baseline_challenge_data/filtRepos-baseline.pkl'
+
+    #other files
+    previous_events = 'baseline_challenge_data/contribution_counts_before_20180201.csv'
+    community_dict = 'baseline_challenge_data/baseline_challenge_community_dict.pkl'
+    te_config = 'baseline_challenge_data/te_params_baseline.json'
 
 
     #instantiate Measurement objects for both the ground truth and simulation data
-    gt_measurements = Measurements(ground_truth,
-                                   interested_users=user_ids,
-                                   interested_repos=repo_ids)
-    sim_measurements = Measurements(simulation,
-                                    interested_users=user_ids,
-                                    interested_repos=repo_ids)
+    gt_measurements = Measurements(simulation,interested_users=user_ids,
+                                    interested_repos=repo_ids,
+                                    metaUserData=user_meta,
+                                    metaRepoData=repo_meta,
+                                    repoActorsFile=user_filt,
+                                    reposFile=repo_filt,
+                                    previousActionsFile=previous_events,
+                                    community_dictionary=community_dict,
+                                    te_config = te_config)
+    sim_measurements = Measurements(simulation,interested_users=user_ids,
+                                    interested_repos=repo_ids,
+                                    metaUserData=user_meta,
+                                    metaRepoData=repo_meta,
+                                    repoActorsFile=user_filt,
+                                    reposFile=repo_filt,
+                                    previousActionsFile=previous_events,
+                                    community_dictionary=community_dict,
+                                    te_config = te_config)
 
 
     #run individual metric
