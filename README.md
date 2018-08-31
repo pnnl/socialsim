@@ -1,29 +1,29 @@
 # socialsim
 
-This repo contains scripts needed to run the measurements and metrics for the SocialSim Baseline Challenge evaluation.
+This repo contains scripts needed to run the measurements and metrics for the SocialSim challenge evaluation.
 
 ## Scripts
 
-Update 07/06/18: The up-to-date versions of the measurements and metrics scripts can be found in github-measurements.  The previously released version is provided in github-measurement-old.  The below instructions correspond to the version in github-measurements. This new version requires several PKL files which are hosted on the Metrics Release v1 page on the SocialSim wiki:
+### run_measurements_and_metrics.py
 
-1. communities.pkl
-2. filtRepos-test.pkl﻿
-3. filtUsers-test.pkl﻿
-
-These files should be downloaded and placed in the directory github-measurements/data/. 
-
-Another major change is that the `run_metrics` and `run_all_metrics` functions no longer take data frames as input but instead take Measurement objects.  Examples of how to call these functions can be found below or in the main function of metrics_config.py.
-
-### metrics_config.py
-
-Contains measurement and metric configuration parameters including measurement to metric assignments and provides functionality
-to run the metrics for a selected measurement and to run the full set of assigned measurements and metrics.
+This is the main script that provides functionality to run individual measurements and metrics or the full set of assigned measurements and metrics for the challenge (this replaces
+the previous metrics_config.py) script. 
 
 #### Measurement Configuration
 
-The metric to measurement assignments are defined in the measurement_params dictionary. 
-Each dictionary element defines the metric assignments for a single measurement, with the key indicating the name of the 
-measurement and the value specifying the measurement function, measurement function arguments, and metrics functions for the metric calculation.
+The measurement configurations used by run_measurements_and_metrics.py are found in the metric_config files in the config/ directory.  These 
+files define a set of dictionaries for different measurement types that specify the measurement and metric parameters. There are five metrics_config files:
+
+1. network_metrics_config.py - contains `network_measurement_params` to be used for all network measurements
+2. cascade_metrics_config.py - contains `cascade_measurement_params` to be used for all cascade measurements
+3. baseline_metrics_config_github.py - contains `github_measurement_params` to be used for baseline measurements applied to GitHub
+3. baseline_metrics_config_reddit.py - contains `reddit_measurement_params` to be used for baseline measurements applied to Reddit
+3. baseline_metrics_config_twitter.py - contains `twitter_measurement_params` to be used for baseline measurements applied to Twitter
+
+
+Each dictionary element in one of the measurement_params dictionaries defines the metric assignments for a single measurement, with the key indicating the name of the 
+measurement and the value specifying the measurement function, measurement function arguments, scenarios which the measurement is included for,
+and metrics functions for the metric calculation.
 For example, here is the specification of a single measurement in this format:
 
 ```python
@@ -32,6 +32,9 @@ For example, here is the specification of a single measurement in this format:
         'question': '17',
         "scale": "population",
         "node_type":"user",
+	"scenario1":True,
+	"scenario2":False,
+	"scenario3":True,
         "measurement": "getUserUniqueRepos",
 	"measurement_args":{"eventType":contribution_events},
         "metrics": { 
@@ -43,24 +46,34 @@ For example, here is the specification of a single measurement in this format:
 ```
 
 This measurement is related to the number of unique repos that users contribute to (Question #17), which is a user-centric 
-measurement at the population level.  The "measurement" keyword specifies the measurement function to 
-apply, and the "measurement_args" keywords specifies the arguments to the measurement function in dictionary format.  The "metrics" keyword provides a dictionary of each of the metrics that should be applied for this measurement.
+measurement at the population level.  The measurement will be used in scenario 1 and scenario 2, but not scenario 3.
+The "measurement" keyword specifies the measurement function to  apply, and the "measurement_args" keywords specifies 
+the arguments to the measurement function in dictionary format.  The "metrics" keyword provides a dictionary of each of 
+the metrics that should be applied for this measurement.
 
-#### Measurements Class
+#### Measurements Classes
 
-Measurements are calculated on a data set by employing the Measurements class (implemented in Measurements.py).  To instantiate a measurements object for particular data set (either simulation or ground truth data):
+Measurements are calculated on a data set by employing one of the measurements classes.  There are currently 6 measurements classes which produce different categories of measurements.  
+1. BaselineMeasurements implemented in BaselineMeasurements.py - this includes all measurements from the baseline challenge which have been generalized to apply to GitHub,Twitter, or Reddit
+2. GithubNetworkMeasurements implemented in network_measurements.py - this includes network measurements for Github.
+3. RedditNetworkMeasurements implemented in network_measurements.py - this includes network measurements for Reddit.
+4. TwitterNetworkMeasurements implemented in network_measurements.py - this includes network measurements for Twitter.
+5. SingleCascadeMeasurements implemented in cascade_measurements.py - this includes node level cascade measurements (i.e. measurements on a single cascade)
+6. CascadeCollectionMeasurements implemented in cascade_measurements.py - this includes population and community level cascade measurements (i.e. measurements on a set of cascades)
+
+To instantiate a measurements object for particular data set (either simulation or ground truth data), you generally pass the data frame to one of the above classes:
 
 ```python
 #create measurement object from data frame 
-measurement = Measurement(data_frame)
+measurement = BaselineMeasurements(data_frame)
 #create measurement object from csv file
-measurement = Measurement(csv_file_name)
+measurement = BaselineMeasurements(csv_file_name)
 
 #create measurement object with specific list of nodes to calculate node-level measurements on
-measurement = Measurement(data_frame,interested_users=['user_id1'],interested_repos=['repo_id1'])
+measurement = BaselineMeasurements(data_frame,user_node_ids=['user_id1'],content_node_ids=['repo_id1'])
 ```
 
-This object contains the methods for calculating all of the measurements.  For example, the user unique repos measurement can be calculated as follows:
+This object contains the methods for calculating all of the measurements of the given type.  For example, the user unique repos measurement can be calculated as follows:
 
 ```python
 result = measurement.getUserUniqueRepos(eventType=contribution_events)
@@ -68,79 +81,84 @@ result = measurement.getUserUniqueRepos(eventType=contribution_events)
 
 #### Running a Single Measurement
 
-The `run_metrics` function can be used to run all the relevant metrics for a given measurement based on the 
-measurement_params configuration, which contains the parameters to be used for evaluation during the challenge event.  This function takes two Measurement objects as input, one for the ground truth and one for the simulation, and the name of the measurement as listed in the keywords of measurement_params. It returns the measurement results for the ground truth and the simulation and the metric comparison.
+The `run_measurement` funciton can be used to calculate the measurement output for a single measurement on a given data set using the measurement_params configuration, which contains the parameters to be used for evaluation during the challenge event.  The arguments for this function include the data, the measurement_params dictionary, and the name of the measurement to apply.
+
+For example, if we want to run one of the baseline GitHub measurements on the simulation data, we need to provide the `github_measurement_params` dictionary which contains the relavent configution and provide the name of the specific measurement we are interested in:
+
+```python
+simulation = BaselineMeasurements(simulation_data_frame)
+meas = run_measurement(simulation, github_measurement_params, "user_unique_content")
+```
+
+The `run_metrics` function can be used to run all the relevant metrics for a given measurement in addition to the measurement output itself.  
+This function takes two Measurement objects as input, one for the ground truth and one for the simulation, the relevant measurement_params dictionary, and the name of the measurement as listed in the keywords of measurement_params. It returns the measurement results for the ground truth and the simulation and the metric output.
 
 For example:
 
 ```python                                                                                                            
-ground_truth = Measurement(ground_truth_data_frame)
-simulation = Measurement(simulation_data_frame)
-gt_measurement, sim_measurement, metric = run_metrics(ground_truth, simulation, "repo_contributors")
+ground_truth = BaselineMeasurements(ground_truth_data_frame)
+simulation = BaselineMeasurements(simulation_data_frame)
+gt_measurement, sim_measurement, metric = run_metrics(ground_truth, simulation, github_measurement_params, "user_unique_content")
 ```
-
-If the Measurement objects do not have the interested_users and interested_repos keywords set, then there will be no node-level measurements calculated.
 
 #### Running All Measurements
 
-To run the metrics for all the measurements that are defined in the measurement_params configuration, the run_all_metrics
-function can be used.  To run all the metrics for all the measurements on a ground truth Measurements object and simulation data Measurements object:
+To run the all the  measurements that are defined in the measurement_params configuration, the `run_all_measurements` and `run_all_metrics`
+functions can be used.  To run all  the measurements on a simulation data Measurements object and save the output in pickle files in the output directory:
 
 ```python
-metrics = run_all_metrics(ground_truth,simulation)
+meas_dictionary = run_all_measurements(simulation,github_measurement_params,output_dir='measurement_output/')
 ```
 
-You can additionally specify specific subsets of the measurements by scale ("node" or "population") and by node type 
-("user" or "repo"):
+To run all the metrics for all the measurements on a ground truth Measurements object and simulation data Measurements object:
 
 ```python
-metrics = run_all_metrics(ground_truth,simulation,scale="population",node_type="user")
+metrics = run_all_metrics(ground_truth,simulation,github_measurement_params)
 ```
+
+For both `run_all_metrics` and `run_all_measurements`, you can additionally specify specific subsets of the measurements by using the filter parameter to filter on any properties in the measurement_params dictionary.  For example:
+
+```python
+metrics = run_all_metrics(ground_truth,simulation,github_measurement_params,filters={"scale":"population","node_type":"user")
+```
+
+#### Plotting
+
+In order to generate plots of the measurements, any of the `run_metrics`, `run_measurement`, `run_all_metrics`, and `run_all_measurements` scripts can take the following arguments:
+
+1. plot_flag - boolean indicator of whether to generate plots
+2. show - boolean indicator of whether to display the plots to screen
+3. plot_dir - A directory in which to save the plots.  If plot_dir is an empty string '', the plots will not be saved.
+
+Currently, plotting is only implemented for the baseline challenge measurements.  Plotting functionality for the remaining meausrements will be released at a later date.
 
 ### Metrics.py
 
 This script contains implementations of each metric for comparison of the output of the ground truth and simulation
 measurements.
 
-### Measurements.py
+### BaselineMeasurements.py
 
-This script contains the core Measurements class which performs intialization of all input data for measurement calculation.
+This script contains the core BaselineMeasurements class which performs intialization of all input data for measurement calculation
+for the measurements from the baseline challenge.
 
 ### UserCentricMeasurements.py
 
 This script contains implementations of the user-centric measurements inside the UserCentricMeasurements class.
 
-### RepoCentricMeasurements.py
+### ContentCentricMeasurements.py
 
-This script contains implementations of the repo-centric measurements inside the RepoCentricMeasurements class.
+This script contains implementations of the baseline content-centric measurements inside the ContentCentricMeasurements class.
 
 ### CommunityCentricMeasurements.py
 
 This script contains implementations of the community-centric measurements inside the CommunityCentricMeasurements class.
 
-## Old Scripts
+### network_measurements.py
 
-### TransferEntropy.py
+This script contains implementations of the network measurements inside the GithubNetworkMeasurements,RedditNetworkMeasurements, and TwitterNetworkMeasurements classes.
 
-This script contains functionality for calculating the transfer entropy between pairs of time series for the 
-influence measurements.  The full calculation of the influence measurements and metrics will be added in a future
-update.
+### cascade_measurements.py
 
-### RepoMeasurementsWithPlot.py (DEPRECATED)
-
-This script contains implementations of the repo-centric measurements along with corresponding plotting functionality to 
-visualize the resulting measurements.  However, the measurement implementations here are not up-to-date.  The up-to-date
-implementations are in RepoCentricMeasurements.py.  The plotting functionality will be merged into RepoCentricMeasurements.py
-in a future update.
-
-### UserMeasurementsWithPlot.py (DEPRECATED)
-
-This script contains implementations of the user-centric measurements along with corresponding plotting functionality to 
-visualize the resulting measurements.  However, the measurement implementations here are not up-to-date.  The up-to-date
-implementations are in UserCentricMeasurements.py.  The plotting functionality will be merged into UserCentricMeasurements.py
-in a future update.
-
-### plots.py
-
-Helper functions for plots visualizing the output of the measurements code.
+This script contains implementations of the cascade measurements inside the SingleCascadeMeasurements and CascadeCollectionMeasurements classes.
 
