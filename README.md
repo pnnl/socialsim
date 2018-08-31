@@ -7,7 +7,7 @@ This repo contains scripts needed to run the measurements and metrics for the So
 ### run_measurements_and_metrics.py
 
 This is the main script that provides functionality to run individual measurements and metrics or the full set of assigned measurements and metrics for the challenge (this replaces
-the previous metrics_config.py) script. 
+the previous metrics_config.py script). 
 
 #### Measurement Configuration
 

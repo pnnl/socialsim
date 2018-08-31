@@ -79,7 +79,8 @@ user_measurement_params = {
          "node_type":"user",
          "measurement": "getGiniCoef",
          "measurement_args":{"nodeType":"user","eventTypes":twitter_events},
-         "metrics": {"absolute difference": Metrics.absolute_difference}
+         "metrics": {"absolute_difference": Metrics.absolute_difference,
+                     "absolute_percentage_error":Metrics.absolute_percentage_error}
      },
 
      "user_palma_coef": {
@@ -88,7 +89,8 @@ user_measurement_params = {
          "node_type":"user",
          "measurement": "getPalmaCoef",
          "measurement_args":{"nodeType":"user","eventTypes":twitter_events},
-         "metrics": {"absolute difference": Metrics.absolute_difference}
+         "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
+
      },
 
      "user_diffusion_delay": {
@@ -189,7 +191,8 @@ content_measurement_params = {
           "node_type":"repo",
           "measurement": "getGiniCoef",
           "measurement_args":{"eventTypes":["retweet"],"nodeType":"parent"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                      "absolute_percentage_error":Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_palma_retweet": {
@@ -198,7 +201,7 @@ content_measurement_params = {
           "node_type":"repo",
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["retweet"],"nodeType":"parent"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
       },
       "content_activity_disparity_gini_quote": {
           "question": 14,
@@ -206,7 +209,8 @@ content_measurement_params = {
           "node_type":"repo",
           "measurement": "getGiniCoef",
           "measurement_args":{"eventTypes":["quote"],"nodeType":"parent"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                      "absolute_percentage_error":Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_palma_quote": {
@@ -215,7 +219,7 @@ content_measurement_params = {
           "node_type":"repo",
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["quote"],"nodeType":"parent"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
       },
       "content_activity_disparity_gini_reply": {
           "question": 14,
@@ -223,7 +227,8 @@ content_measurement_params = {
           "node_type":"repo",
           "measurement": "getGiniCoef",
           "measurement_args":{"eventTypes":["reply"],"nodeType":"parent"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                      "absolute_percentage_error":Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_palma_reply": {
@@ -232,7 +237,7 @@ content_measurement_params = {
           "node_type":"repo",
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["reply"],"nodeType":"parent"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
       }
 
 

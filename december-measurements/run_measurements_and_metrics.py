@@ -22,7 +22,6 @@ from network_metrics_config import *
 sys.path.append('plotting')
 import charts
 from visualization_config import measurement_plot_params
-import utils
 import os
 import tqdm
 import transformer
@@ -489,11 +488,11 @@ def baseline_examples(platform="github"):
 
 def main():
 
-    #baseline_examples("github")
+    baseline_examples("reddit")
 
     #network_examples("twitter")
 
-    cascade_examples("twitter")
+    #cascade_examples("twitter")
 
 
 if __name__ == "__main__":

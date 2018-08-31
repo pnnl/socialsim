@@ -97,7 +97,8 @@ user_measurement_params = {
          "scenario3":True,
          "measurement": "getGiniCoef",
          "measurement_args":{"nodeType":"user","eventTypes":reddit_events},
-         "metrics": {"absolute difference": Metrics.absolute_difference}
+         "metrics": {"absolute_difference": Metrics.absolute_difference,
+                     "absolute_percentage_error": Metrics.absolute_percentage_error}
      },
 
      "user_palma_coef": {
@@ -109,7 +110,7 @@ user_measurement_params = {
          "scenario3":True,
          "measurement": "getPalmaCoef",
          "measurement_args":{"nodeType":"user","eventTypes":reddit_events},
-         "metrics": {"absolute difference": Metrics.absolute_difference}
+         "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
      },
 
      "user_diffusion_delay": {
@@ -215,7 +216,8 @@ content_measurement_params = {
           "filters": {"event": ["comment"]},
           "measurement": "getGiniCoef",
           "measurement_args":{"eventTypes":["comment"]},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                      "absolute_percentage_error": Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_palma_comment": {
@@ -227,7 +229,7 @@ content_measurement_params = {
           "scenario3":True,
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["comment"]},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
       },
     
       "subreddit_user_continue_prop":{
@@ -265,7 +267,8 @@ community_measurement_params = {
         "scenario3":True,
         "measurement":"getCommunityGini",
         "measurement_args":{"eventTypes":reddit_events,"community_field":"subreddit","content_field":"root"},
-        "metrics":{"absolute_difference": Metrics.absolute_difference}
+        "metrics":{"absolute_difference": Metrics.absolute_difference,
+                   "absolute_percentage_error": Metrics.absolute_percentage_error}
         },
 
     "community_palma":{
@@ -277,7 +280,7 @@ community_measurement_params = {
         "scenario3":True,
         "measurement":"getCommunityPalma",
         "measurement_args":{"eventTypes":reddit_events,"community_field":"subreddit","content_field":"root"},
-        "metrics":{"absolute_difference": Metrics.absolute_difference}
+        "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error}
         },
 
     "community_geo_locations":{
@@ -312,7 +315,8 @@ community_measurement_params = {
         "scenario3":True,
         "measurement":"contributingUsers",
         "measurement_args":{"eventTypes":reddit_events,"community_field":"subreddit"},
-        "metrics":{"absolute_difference":Metrics.absolute_difference}
+        "metrics":{"absolute_difference":Metrics.absolute_difference,
+                   "absolute_percentage_error": Metrics.absolute_percentage_error}
         },
     "community_num_user_actions":{
         "question":"23",
@@ -337,7 +341,8 @@ community_measurement_params = {
         "scenario3":True,
         "measurement":"burstsInCommunityEvents",
         "measurement_args":{"eventTypes":reddit_events,"community_field":"subreddit"},
-        "metrics":{"absolute_difference":Metrics.absolute_difference}
+        "metrics":{"absolute_difference":Metrics.absolute_difference,
+                   "absolute_percentage_error": Metrics.absolute_percentage_error}
         },
 
     "community_user_burstiness":{

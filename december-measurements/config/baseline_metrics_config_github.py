@@ -98,7 +98,8 @@ user_measurement_params = {
          'scenario3':True,
          "measurement": "getGiniCoef",
          "measurement_args":{"nodeType":"user","eventTypes":contribution_events,"content_field":"content"},
-         "metrics": {"absolute difference": Metrics.absolute_difference}
+         "metrics": {"absolute_difference": Metrics.absolute_difference,
+                     "absolute_percentage_errror": Metrics.absolute_percentage_error}
      },
 
      "user_palma_coef": {
@@ -110,7 +111,7 @@ user_measurement_params = {
          'scenario3':True,
          "measurement": "getPalmaCoef",
          "measurement_args":{"nodeType":"user","eventTypes":contribution_events,"content_field":"content"},
-         "metrics": {"absolute difference": Metrics.absolute_difference}
+         "metrics": {"absolute_percentage_errror": Metrics.absolute_percentage_error}
      },
 
      "user_diffusion_delay": {
@@ -264,7 +265,8 @@ content_measurement_params = {
          'scenario3':True,
          "measurement": "getGiniCoef",
          "measurement_args":{"eventTypes":["ForkEvent"],"content_field":"content","nodeType":"content"},
-         "metrics": {"absolute_difference": Metrics.absolute_difference}
+         "metrics": {"absolute_difference": Metrics.absolute_difference,
+                     "absolute_percentage_error": Metrics.absolute_percentage_error}
      },
     
      "content_activity_disparity_palma_fork": {
@@ -276,7 +278,7 @@ content_measurement_params = {
          'scenario3':True,
          "measurement": "getPalmaCoef",
          "measurement_args":{"eventTypes":["ForkEvent"],"content_field":"content","nodeType":"content"},
-         "metrics": {"absolute_difference": Metrics.absolute_difference}
+         "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
      },
     
       "content_activity_disparity_gini_push": {
@@ -289,7 +291,8 @@ content_measurement_params = {
           "filters": {"event": ["PushEvent"]},
           "measurement": "getGiniCoef",
           "measurement_args":{"eventTypes":["PushEvent"],"content_field":"content","nodeType":"content"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                      "absolute_percentage_error": Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_palma_push": {
@@ -301,7 +304,7 @@ content_measurement_params = {
           'scenario3':True,
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["PushEvent"],"content_field":"content","nodeType":"content"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_gini_pullrequest": {
@@ -313,7 +316,8 @@ content_measurement_params = {
           'scenario3':True,
           "measurement": "getGiniCoef",
           "measurement_args":{"eventTypes":["PullRequestEvent"],"content_field":"content","nodeType":"content"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                      "absolute_percentage_error": Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_palma_pullrequest": {
@@ -325,7 +329,7 @@ content_measurement_params = {
           'scenario3':True,
           "measurement_args":{"eventTypes":["PullRequestEvent"],"content_field":"content","nodeType":"content"},
           "measurement": "getPalmaCoef",
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_gini_issue": {
@@ -337,7 +341,8 @@ content_measurement_params = {
           'scenario3':True,
           "measurement": "getGiniCoef",
           "measurement_args":{"eventTypes":["IssuesEvent"],"content_field":"content","nodeType":"content"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                      "absolute_percentage_error":Metrics.absolute_percentage_error}
       },
     
       "content_activity_disparity_palma_issue": {
@@ -349,7 +354,7 @@ content_measurement_params = {
           'scenario3':True,
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["IssuesEvent"],"content_field":"content","nodeType":"content"},
-          "metrics": {"absolute_difference": Metrics.absolute_difference}
+          "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
       },
     
       "repo_trustingness":{
@@ -439,7 +444,8 @@ community_measurement_params = {
          'scenario3':True,
         "measurement":"getCommunityGini",
         "measurement_args":{"eventTypes":contribution_events,"community_field":"community","content_field":"content"},
-        "metrics":{"absolute_difference": Metrics.absolute_difference}
+        "metrics":{"absolute_difference": Metrics.absolute_difference,
+                   "absolute_percentage_error":Metrics.absolute_percentage_error}
         },
 
     "community_palma":{
@@ -451,7 +457,7 @@ community_measurement_params = {
         'scenario3':True,
         "measurement":"getCommunityPalma",
         "measurement_args":{"eventTypes":contribution_events,"community_field":"community","content_field":"content"},
-        "metrics":{"absolute_difference": Metrics.absolute_difference}
+        "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error}
         },
 
     "community_geo_locations":{
@@ -486,7 +492,8 @@ community_measurement_params = {
         'scenario3':True,
         "measurement":"contributingUsers",
         "measurement_args":{"community_field":"community"},
-        "metrics":{"absolute_difference":Metrics.absolute_difference}
+        "metrics":{"absolute_difference":Metrics.absolute_difference,
+                   "absolute_percentage_error":Metrics.absolute_percentage_error}
         },
     "community_num_user_actions":{
         "question":"23",
@@ -511,7 +518,8 @@ community_measurement_params = {
         'scenario3':True,
         "measurement":"burstsInCommunityEvents",
         "measurement_args":{"eventTypes":contribution_events + popularity_events,"community_field":"community"},
-        "metrics":{"absolute_difference":Metrics.absolute_difference}
+        "metrics":{"absolute_difference":Metrics.absolute_difference,
+                   "absolute_percentage_error":Metrics.absolute_percentage_error}
         },
     "community_user_burstiness":{
         "question":"",
