@@ -452,13 +452,13 @@ def baseline_examples(platform="github"):
     #run individual measurement
     #the plots will be displayed to screen
     meas = run_measurement(sim_measurements, "user_unique_content", 
-                           configs[platform],show=True,plot_dir='')
+                           configs[platform],show=True,plot_dir='',plot_flag=True)
 
 
     #run individual metric
     #the plots will be displayed to screen
     gt_measurement, sim_measurement, metric = run_metrics(gt_measurements, sim_measurements, "user_unique_content", 
-                                                          configs[platform],show=True,plot_dir='')
+                                                          configs[platform],show=True,plot_dir='',plot_flag=True)
     pprint.pprint(metric)
 
 
@@ -466,7 +466,7 @@ def baseline_examples(platform="github"):
     #the plots will be saved in the plots directory
     #the measurement outputs will be saved as pickle files in the measurements_output directory
     meas = run_all_measurements(gt_measurements,configs[platform],show=False,plot_dir='plots/',
-                                plot_flag=False,output_dir='measurements_output/')
+                                plot_flag=True,output_dir='measurements_output/')
 
 
 
