@@ -76,6 +76,10 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
     metrics = p['metrics']
 
     if p["scale"] in ["node","community"]:
+        
+        if measurement_on_gt is None:
+            measurement_on_gt = {}
+
         for node in measurement_on_gt:
             metrics_output[node] = {}
 
@@ -488,9 +492,9 @@ def baseline_examples(platform="github"):
 
 def main():
 
-    baseline_examples("reddit")
+    #baseline_examples("reddit")
 
-    #network_examples("twitter")
+    network_examples("twitter")
 
     #cascade_examples("twitter")
 
