@@ -99,7 +99,7 @@ user_measurement_params = {
          "measurement": "getGiniCoef",
          "measurement_args":{"nodeType":"user","eventTypes":contribution_events,"content_field":"content"},
          "metrics": {"absolute_difference": Metrics.absolute_difference,
-                     "absolute_percentage_errror": Metrics.absolute_percentage_error}
+                     "absolute_percentage_error": Metrics.absolute_percentage_error}
      },
 
      "user_palma_coef": {
@@ -111,7 +111,7 @@ user_measurement_params = {
          'scenario3':True,
          "measurement": "getPalmaCoef",
          "measurement_args":{"nodeType":"user","eventTypes":contribution_events,"content_field":"content"},
-         "metrics": {"absolute_percentage_errror": Metrics.absolute_percentage_error}
+         "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
      },
 
      "user_diffusion_delay": {
