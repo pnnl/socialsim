@@ -184,8 +184,11 @@ def generate_plot(simulation=None, ground_truth = None, measurement_name='',show
          #keys are the IDs for nodes and communities to extract individual measurements from the dictionary
          keys = ['']
          if 'plot_keys' in params:
-             keys = simulation.keys()
-   
+             try:
+                 keys = simulation.keys()    
+             except:
+                 keys = ground_truth.keys()
+
          #only generate limited number of plots for specific nodes/communities if showing to screen
          if show and len(keys) > 3:
              keys = keys[:3]
