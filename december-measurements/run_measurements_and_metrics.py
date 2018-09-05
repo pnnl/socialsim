@@ -63,7 +63,6 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
     else:
         measurement_on_gt = ground_truth[measurement_name]
 
-    print('measurement_name',measurement_name)
     measurement_on_sim = run_measurement(simulation,measurement_name,measurement_params,plot_flag=False,simulation=True)
     
     if plot_flag:
@@ -79,6 +78,9 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
         
         if measurement_on_gt is None:
             measurement_on_gt = {}
+
+        if measurement_on_sim is None:
+            measurement_on_sim = {}
 
         for node in measurement_on_gt:
             metrics_output[node] = {}
@@ -96,7 +98,6 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
                 print(node)
         
                 if node in measurement_on_gt and node in measurement_on_sim:
-                    print(measurement_on_gt[node])
                     if not measurement_on_gt[node] is None and not measurement_on_sim[node] is None:
                         metric = metric_function(measurement_on_gt[node],measurement_on_sim[node])
                     else:
