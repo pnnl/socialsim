@@ -35,7 +35,7 @@ def named_partial(func, *args, **kwargs):
     return partial_func
 
 
-def run_metrics(ground_truth, simulation, measurement_name, measurement_params, measurement_on_gt=None, 
+def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
                 plot_flag=False,show=False,plot_dir=''):
 
     """
@@ -58,7 +58,7 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params, 
 
 
     #ground_truth measurement
-    if not isinstance(measurement_on_gt,dict):
+    if not isinstance(ground_truth,dict):
         measurement_on_gt = run_measurement(ground_truth,measurement_name,measurement_params,plot_flag=False,simulation=False)
     else:
         measurement_on_gt = ground_truth[measurement_name]
