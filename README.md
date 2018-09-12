@@ -46,7 +46,7 @@ For example, here is the specification of a single measurement in this format:
 ```
 
 This measurement is related to the number of unique repos that users contribute to (Question #17), which is a user-centric 
-measurement at the population level.  The measurement will be used in scenario 1 and scenario 2, but not scenario 3.
+measurement at the population level.  The measurement will be used in scenario 1 and scenario 3, but not scenario 2.
 The "measurement" keyword specifies the measurement function to  apply, and the "measurement_args" keywords specifies 
 the arguments to the measurement function in dictionary format.  The "metrics" keyword provides a dictionary of each of 
 the metrics that should be applied for this measurement.
