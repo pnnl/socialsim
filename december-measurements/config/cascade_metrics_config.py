@@ -19,7 +19,7 @@ def get_node_level_measurements_params(time_granularity):
     # ["depth", "breadth", "size", "structural_virality", "unique_nodes", "new_node_ratio"])
     node_level_measurement_params = {
         "cascade_max_depth_over_time": {
-            "scale":"Node",
+            "scale":"node",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -31,7 +31,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch":"Temporal"
         },
         "cascade_breadth_by_time": {
-            "scale":"Node",
+            "scale":"node",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -43,7 +43,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch":"Temporal"
         },
         "cascade_structural_virality_over_time": {
-            "scale":"Node",
+            "scale":"node",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -55,7 +55,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch":"Temporal"
         },
         "cascade_size_over_time": {
-            "scale":"Node",
+            "scale":"node",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -67,7 +67,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch":"Temporal"
         },
         "cascade_uniq_users_by_time": {
-            "scale": "Node",
+            "scale": "node",
             "node_type": "Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -79,7 +79,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch": "Temporal"
         },
         "cascade_new_user_ratio_by_time": {
-            "scale": "Node",
+            "scale": "node",
             "node_type": "Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -91,7 +91,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch": "Temporal"
         },
         "cascade_breadth_by_depth": {
-            "scale":"Node",
+            "scale":"node",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -103,7 +103,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch":"Batch"
         },
         "cascade_new_user_ratio_by_depth": {
-            "scale":"Node",
+            "scale":"node",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -115,7 +115,7 @@ def get_node_level_measurements_params(time_granularity):
             "temporal_vs_batch":"Batch"
         },
         "cascade_uniq_users_by_depth": {
-            "scale":"Node",
+            "scale":"node",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -126,22 +126,22 @@ def get_node_level_measurements_params(time_granularity):
                        "r2": Metrics.r2},
             "temporal_vs_batch":"Batch"
         },
-#        "cascade_participation_gini": {
-#            "scale":"Node",
-#            "node_type":"Cascade",
-#            "measurement":"cascade_participation_gini",
-#            "measurement_args":{},
-#            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
-#            "temporal_vs_batch":"Batch"
-#        },
-#        "cascade_participation_palma": {
-#            "scale":"Node",
-#            "node_type":"Cascade",
-#            "measurement":"cascade_participation_palma",
-#            "measurement_args":{},
-#            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
-#            "temporal_vs_batch":"Batch"
-#        }
+        "cascade_participation_gini": {
+            "scale":"node",
+            "node_type":"Cascade",
+            "measurement":"cascade_participation_gini",
+            "measurement_args":{},
+            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "temporal_vs_batch":"Batch"
+        },
+        "cascade_participation_palma": {
+            "scale":"node",
+            "node_type":"Cascade",
+            "measurement":"cascade_participation_palma",
+            "measurement_args":{},
+            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "temporal_vs_batch":"Batch"
+        }
     }
     return node_level_measurement_params
 
@@ -155,7 +155,7 @@ def get_community_level_measurements_params(time_granularity="M"):
     """
     community_measurement_params = {
         "community_max_depth_distribution": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -166,7 +166,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_max_breadth_distribution": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -177,7 +177,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_structural_virality_distribution": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -188,7 +188,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_size_distribution": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -199,7 +199,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_lifetime_distribution": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -211,7 +211,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Temporal"
         },
         "community_cascade_size_timeseries": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -223,7 +223,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Temporal"
         },
         "community_cascade_lifetime_timeseries": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -234,7 +234,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_unique_users_by_time": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -246,19 +246,19 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Temporal"
         },
         "community_new_user_ratio_by_time": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
             "scenario3":True,
-            "measurement":"getCommunityNewUserRatioTimeSeries",
+            "measurement":"get_community_users_count",
             "measurement_args":{"attribute": "new_user_ratio", "community_grouper": "communityID", "time_granularity": time_granularity},
             "metrics":{"rmse": Metrics.rmse,
                        "r2": Metrics.r2},
             "temporal_vs_batch":"Temporal"
         },
         "community_cascade_initialization_gini": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -269,7 +269,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_initialization_palma": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -280,7 +280,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_participation_gini": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -291,7 +291,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_participation_palma": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -302,7 +302,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "community_fraction_nodes_lcc": {
-            "scale":"Community",
+            "scale":"community",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -324,7 +324,7 @@ def get_population_level_measurements_params(time_granularity="M"):
     """
     population_measurement_params = {
         "population_max_depth_distribution": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -335,7 +335,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_max_breadth_distribution": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -346,7 +346,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_structural_virality_distribution": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -357,7 +357,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_size_distribution": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -368,7 +368,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_lifetime_distribution": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -379,7 +379,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_size_timeseries": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -391,7 +391,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Temporal"
         },
         "population_cascade_lifetime_timeseries": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -403,7 +403,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Temporal"
         },
         "population_cascade_initialization_gini": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -414,7 +414,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_initialization_palma": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -425,7 +425,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_participation_gini": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -436,7 +436,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_participation_palma": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -447,7 +447,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "temporal_vs_batch":"Batch"
         },
         "population_fraction_nodes_lcc": {
-            "scale":"Population",
+            "scale":"population",
             "node_type":"Cascade",
             "scenario1":False,
             "scenario2":True,
@@ -463,9 +463,9 @@ def get_population_level_measurements_params(time_granularity="M"):
 
 
 
-cascade_node_params = get_node_level_measurements_params('H')
-cascade_community_params = get_community_level_measurements_params('H')
-cascade_population_params = get_population_level_measurements_params('H')
+cascade_node_params = get_node_level_measurements_params('D')
+cascade_community_params = get_community_level_measurements_params('D')
+cascade_population_params = get_population_level_measurements_params('D')
 
 cascade_measurement_params = {}
 cascade_measurement_params.update(cascade_node_params)
