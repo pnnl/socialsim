@@ -17,10 +17,18 @@ class NetworkMeasurements(object):
     def __init__(self, data, node1='user', node2='repo', test=True):
         self.main_df = data if isinstance(data, pd.DataFrame) else pd.read_csv(data)
 
+
         if test:
             self.main_df = self.main_df.head(1000)
 
         assert self.main_df is not None and len(self.main_df) > 0, "Problem with the dataframe creation"
+
+        if len(self.main_df.columns) == 4:
+            self.main_df.columns = ['nodeTime','actionType','nodeUserID','nodeID']
+        elif len(self.main_df.columns) == 6:
+            self.main_df.columns = ['nodeTime','actionType','nodeUserID','nodeID','actionSubType','merged']
+        elif len(self.main_df.columns) == 7:
+            self.main_df.columns = ['nodeID','nodeUserID','parentID','rootID','actionType','nodeTime','nodeAttributes']
 
         self.node1 = node1
 
@@ -108,7 +116,7 @@ class NetworkMeasurements(object):
 
 class GithubNetworkMeasurements(NetworkMeasurements):
 
-    def __init__(self, project_on='content', weighted=False, **kwargs):
+    def __init__(self, project_on='nodeID', weighted=False, **kwargs):
         self.project_on = project_on
         self.weighted = weighted
         super(GithubNetworkMeasurements, self).__init__(**kwargs)
