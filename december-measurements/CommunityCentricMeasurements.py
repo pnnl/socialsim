@@ -212,11 +212,15 @@ class CommunityCentricMeasurements():
                         
             mean = grp['diff'].mean()
             std = grp['diff'].std()
-            burstiness = (std - mean) / (std + mean)
+            if std + mean > 0:
+                burstiness = (std - mean) / (std + mean)
+            else:
+                burstiness = 0
 
             return burstiness
 
         b = df.groupby(community_field).apply(burstiness)
+        b.columns = ['community','value']
 
         measurement = self.getCommunityMeasurementDict(b)
 
