@@ -82,6 +82,12 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
         if measurement_on_sim is None:
             measurement_on_sim = {}
 
+        if not isinstance(measurement_on_gt,dict):
+            measurement_on_gt = {"node":measurement_on_gt}
+
+        if not isinstance(measurement_on_sim,dict):
+            measurement_on_sim = {"node":measurement_on_sim}
+
         for node in measurement_on_gt:
             metrics_output[node] = {}
 
@@ -95,8 +101,7 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
             #iterate over individual nodes and communities to calculate the metric results for each
             for node in measurement_on_gt:
                 
-                print(node)
-        
+
                 if node in measurement_on_gt and node in measurement_on_sim:
                     if not measurement_on_gt[node] is None and not measurement_on_sim[node] is None:
                         metric = metric_function(measurement_on_gt[node],measurement_on_sim[node])
@@ -375,7 +380,7 @@ def network_examples(platform="github"):
 
     #run all assigned measurements
     #the measurement outputs will be saved as pickle files in the measurements_output directory
-    meas = run_all_measurements(gt_measurements,network_measurement_params,output_dir='measurements_output/')
+    meas = run_all_measurements(gt_measurements,network_measurement_params,output_dir='measurements_output/' + platform + '/')
 
 
     #run all assigned metrics
@@ -383,7 +388,7 @@ def network_examples(platform="github"):
     pprint.pprint(metrics)
 
     #load ground truth measurements from saved pickle files 
-    gt_measurement = load_measurements('measurements_output/',network_measurement_params)
+    gt_measurement = load_measurements('measurements_output/' + platform + '/',network_measurement_params)
 
     #run all assigned metrics using the loaded measurements (without recalculating the measurements on the ground truth)
     metrics = run_all_metrics(gt_measurements,sim_measurements,network_measurement_params)
@@ -392,7 +397,7 @@ def network_examples(platform="github"):
 
 def cascade_examples(platform):
 
-    ground_truth = pd.read_csv(platform + '_data_sample.csv',nrows=1000)
+    ground_truth = pd.read_csv(platform + '_data_sample.csv')
     simulation = ground_truth.copy()
 
 
@@ -426,14 +431,14 @@ def cascade_examples(platform):
 
     #run all assigned measurements
     #the measurement outputs will be saved as pickle files in the measurements_output directory
-    meas = run_all_measurements(gt_measurements_node,cascade_measurement_params,output_dir='measurements_output/')
-    meas = run_all_measurements(gt_measurements_pop_community,cascade_measurement_params,output_dir='measurements_output/')
+    meas = run_all_measurements(gt_measurements_node,cascade_measurement_params,output_dir='measurements_output/' + platform + '/',filters={"scale":["node"]})
+    meas = run_all_measurements(gt_measurements_pop_community,cascade_measurement_params,output_dir='measurements_output/' + platform + '/',filters={"scale":["population","community"]})
 
 
     #run all assigned metrics
-    metrics = run_all_metrics(gt_measurements_node,sim_measurements_node,cascade_measurement_params)
+    metrics = run_all_metrics(gt_measurements_node,sim_measurements_node,cascade_measurement_params,filters={"scale":["node"]})
     pprint.pprint(metrics)
-    metrics = run_all_metrics(gt_measurements_pop_community,sim_measurements_pop_community,cascade_measurement_params)
+    metrics = run_all_metrics(gt_measurements_pop_community,sim_measurements_pop_community,cascade_measurement_params,filters={"scale":["population","community"]})
     pprint.pprint(metrics)
 
     
@@ -474,7 +479,7 @@ def baseline_examples(platform="github"):
     #the plots will be saved in the plots directory
     #the measurement outputs will be saved as pickle files in the measurements_output directory
     meas = run_all_measurements(gt_measurements,configs[platform],show=False,plot_dir='plots/',
-                                plot_flag=True,output_dir='measurements_output/')
+                                plot_flag=True,output_dir='measurements_output/' + platform + '/')
 
 
 
@@ -496,11 +501,11 @@ def baseline_examples(platform="github"):
 
 def main():
 
-    #baseline_examples("reddit")
+    baseline_examples("reddit")
 
-    network_examples("twitter")
+    network_examples("github")
 
-    #cascade_examples("twitter")
+    cascade_examples("twitter")
 
 
 if __name__ == "__main__":
