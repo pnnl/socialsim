@@ -390,6 +390,9 @@ def r2(ground_truth, simulation, join='inner', fill_value=0):
 
     if simulation is None or ground_truth is None:
         return None
+    
+    if len(simulation) == 0 or len(ground_truth) == 0:
+        return None
 
     if type(ground_truth) is list:
     	ground_truth = np.nan_to_num(ground_truth)

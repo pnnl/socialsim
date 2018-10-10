@@ -1,24 +1,25 @@
 import networkx as nx
 import pandas as pd
 
-from cascade_validators import check_root_only
-from validators import check_empty
 import pysal
 import numpy as np
 from collections import Counter
+
+from validators import check_empty
+from cascade_validators import check_root_only
 
 
 """
 IMPORTANT: all timestamp fields in the dfs must be in pandas datetime format
 """
 
-def palma_ratio(income):
-    income = np.sort(np.array(income))
-    percent_nodes = np.arange(1, len(income) + 1) / float(len(income))
+def palma_ratio(values):
+    values = np.sort(np.array(values))
+    percent_nodes = np.arange(1, len(values) + 1) / float(len(values))
     # percent of events taken by top 10% of nodes
-    p10 = np.sum(income[percent_nodes >= 0.9])
+    p10 = np.sum(values[percent_nodes >= 0.9])
     # percent of events taken by bottom 40% of nodes
-    p40 = np.sum(income[percent_nodes <= 0.4])
+    p40 = np.sum(values[percent_nodes <= 0.4])
     try:
         p = float(p10) / float(p40)
     except ZeroDivisionError:
@@ -41,7 +42,7 @@ class Cascade:
         The spread of true and false news online. Science. 2018
     """
 
-    def __init__(self, main_df=None, parent_node_col="parentID", node_col="nodeID", root_node_col="rootID", timestamp_col="nodeTime", user_col = "nodeUserID"):
+    def __init__(self, main_df=None, parent_node_col="parentID", node_col="nodeID", root_node_col="rootID", timestamp_col="nodeTime", user_col = "nodeUserID",community_col="communityID"):
         """
         main_df: df containing all tweets in the RT cascade of the original tweet
         parent_node: name of the column containg the uid of the node who was retweeted from (None for cascade root)
@@ -53,35 +54,50 @@ class Cascade:
         self.root_node_col = root_node_col
         self.timestamp_col = timestamp_col
         self.user_col = user_col
+        self.community_col = community_col
+
+
+
         if main_df is not None:
+
+
+            if self.community_col in main_df.columns:
+                self.community = main_df[self.community_col].values[0]
+            else:
+                self.community = ''
+
+
             if len(main_df) > 0:
                 self.preprocess_and_create_nx(main_df, set_cascade=True)
             else:
                 self.main_df = main_df
+        else:
+            self.community = ''
+
+
+    def set_root_node(self, main_df):
+        root_df = main_df[main_df[self.node_col] == main_df[self.root_node_col]]
+        self.root_node = root_df[self.node_col].values[0]
 
     def preprocess_and_create_nx(self, main_df, set_cascade=True):
-        root_df = main_df[main_df[self.node_col] == main_df[self.root_node_col]]
-   
-        if len(root_df) > 0:
-            self.root_node = root_df[self.node_col].values[0]
-        else:
-            self.root_node = main_df[self.root_node_col].values[0]
-
         if set_cascade:
             self.main_df = main_df
-            self.cascade_nx = nx.from_pandas_edgelist(main_df,
-                                                      target=self.parent_node_col, source=self.node_col,
-                                                      create_using=nx.DiGraph())
-                      
-            #self.cascade_nx = nx.from_pandas_edgelist(main_df[main_df[self.node_col] != main_df[self.root_node_col]],
-            #                                          target=self.parent_node_col, source=self.node_col,
-            #                                          create_using=nx.DiGraph())
-        else:
-            return main_df
+            root_df = self.main_df[self.main_df[self.node_col] == self.main_df[self.root_node_col]]
+            self.root_node = root_df[self.node_col].values[0]
+            self.cascade_nx = nx.from_pandas_edgelist(main_df[main_df[self.node_col] != main_df[self.root_node_col]],
+                                                     target=self.parent_node_col, source=self.node_col,
+                                                     create_using=nx.DiGraph())
+        return main_df
         
     def update_cascade(self, df):
         if not hasattr(self, 'main_df'):
             self.main_df = df
+            
+            if self.community_col in df.columns:
+                self.community = self.main_df[self.community_col].values[0]                
+
+            root_df = self.main_df[self.main_df[self.node_col] == self.main_df[self.root_node_col]]
+            self.root_node = root_df[self.node_col].values[0]
             self.cascade_nx = nx.from_pandas_edgelist(self.main_df[self.main_df[self.node_col] != self.main_df[self.root_node_col]],
                                                       target=self.parent_node_col,
                                                       source=self.node_col, create_using=nx.DiGraph())
@@ -89,40 +105,39 @@ class Cascade:
             self.main_df = pd.concat([self.main_df, df])
             self.cascade_nx.add_edges_from([tuple(x) for x in df[[self.node_col, self.parent_node_col]].values])
 
+    def get_depth_of_each_node(self):
+        if 'depth' in self.main_df.columns:
+            pass
+        self.main_df.loc[:, "depth"] = -1
+        self.main_df.loc[self.main_df[self.node_col] == self.root_node, 'depth'] = 0
+        seed_nodes = [self.root_node]
+        depth = 1
+        while len(seed_nodes) > 0:
+            self.main_df.loc[ (self.main_df[self.parent_node_col].isin(seed_nodes)) & (self.main_df[self.node_col] != self.main_df[self.parent_node_col]), 'depth'] = depth
+            seed_nodes = self.main_df[(self.main_df[self.parent_node_col].isin(seed_nodes)) & (
+                        self.main_df[self.node_col] != self.main_df[self.parent_node_col])][self.node_col].values
+            assert len(set(seed_nodes)) == len(seed_nodes)
+            depth += 1
 
     @check_empty(default=None)
-    #@check_root_only(default=0)
+    @check_root_only(default=0)
     def get_cascade_depth(self):
- 
-        path_lengths = []
-        for x in self.cascade_nx.nodes():
-            if self.cascade_nx.in_degree(x) == 0:
-                try:
-                    p_len = nx.shortest_path_length(self.cascade_nx, x, self.root_node)
-                    path_lengths.append(p_len)
-                except:
-                    ''
-        if len(path_lengths) > 0:
-            return max(path_lengths)
-        else:
-            return None
+        self.get_depth_of_each_node()
+        return max(self.main_df['depth'])
 
     @check_empty(default=0)
-    #@check_root_only(default=1)
+    @check_root_only(default=1)
     def get_cascade_size(self):
         return nx.number_of_nodes(self.cascade_nx)
 
     @check_empty(default=None)
-    #@check_root_only(default=0)
+    @check_root_only(default=0)
     def get_cascade_breadth(self):
-        degrees = [self.cascade_nx.in_degree(x) for x in self.cascade_nx.nodes()]
-        if len(degrees) > 0:
-            return max(degrees)
-        else:
-            return None
+        self.get_depth_of_each_node()
+        return max(self.main_df.groupby('depth').size().reset_index(name='breadth_at_depth')['breadth_at_depth'])
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=None)
     def get_cascade_structural_virality(self):
         """
         :return: structural virality of a single cascade.
@@ -139,16 +154,15 @@ class Cascade:
         except:
             return None
 
-    @check_empty(default=0)
-    ##@check_root_only(default=1)
+    @check_empty(default=set())
     def get_cascade_nodes(self, unique=True):
         if unique:
             return set(self.main_df[self.user_col])
         else:
-            return self.main_df[self.node_col]
+            return set(self.main_df[self.node_col])
 
     @check_empty(default=None)
-    #@check_root_only(default=0)
+    @check_root_only(default=0)
     def get_cascade_lifetime(self, granularity="D"):
         """
         :param granularity: "s", "m", "H", "D"  [seconds/minutes/days/hours]
@@ -177,35 +191,62 @@ class SingleCascadeMeasurements:
     measurements for a cascade i.e. node level measurements
     """
 
-    def __init__(self, main_df, parent_node_col="parentID", node_col="nodeID", root_node_col="rootID", timestamp_col="nodeTime", user_col = "nodeUserID"):
+    def __init__(self, main_df, parent_node_col="parentID", node_col="nodeID", root_node_col="rootID", timestamp_col="nodeTime", user_col = "nodeUserID",
+                 community_col="communityID"):
         self.parent_node_col = parent_node_col
         self.node_col = node_col
         self.root_node_col = root_node_col
         self.timestamp_col = timestamp_col
         self.user_col = user_col
-        self.cascade = Cascade(parent_node_col=self.parent_node_col, node_col=self.node_col, root_node_col=root_node_col, timestamp_col=self.timestamp_col,user_col=self.user_col)
+        self.community_col = community_col
+
+        if self.community_col in main_df.columns:
+            self.community = main_df[self.community_col].values[0]
+        else:
+            self.community = ''
+
+        try:
+            main_df[self.timestamp_col] = pd.to_datetime(main_df[self.timestamp_col],unit='s')
+        except:
+            try:
+                main_df[self.timestamp_col] = pd.to_datetime(main_df[self.timestamp_col],unit='ms')
+            except:
+                main_df[self.timestamp_col] = pd.to_datetime(main_df[self.timestamp_col])
+
+        self.cascade = Cascade(parent_node_col=self.parent_node_col, node_col=self.node_col, root_node_col=self.root_node_col, timestamp_col=self.timestamp_col,user_col=self.user_col)
         if main_df is not None:
             if len(main_df) > 0:
-                self.main_df = self.cascade.preprocess_and_create_nx(main_df, set_cascade=False)
+                self.main_df = self.cascade.preprocess_and_create_nx(main_df, set_cascade=True)
             else:
                 self.main_df = main_df
+        self.reset_incremental_measurements()
 
+    def reset_incremental_measurements(self):
         self.temporal_measurements = {}
         self.depth_based_measurement_df = None
 
-        try:
-            self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='s')
-        except:
-            self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='ms')
+    def set_cascade(self, cascade=None):
+        if cascade:
+            self.cascade = cascade
+            self.main_df = cascade.main_df
+        else:
+            # create cascade according to main_df, useful for changing the cascade object back to full cascade after incremental measurements
+            self.cascade = Cascade(self.main_df, parent_node_col=self.parent_node_col, node_col=self.node_col, root_node_col=self.root_node_col, timestamp_col=self.timestamp_col,user_col=self.user_col)
+
+    # for incremental measurements, to start with no nodes in the cascade
+    def reset_cascade(self):
+        self.cascade = Cascade(parent_node_col=self.parent_node_col, node_col=self.node_col, root_node_col=self.root_node_col, timestamp_col=self.timestamp_col,user_col=self.user_col)
+
 
 
     @check_empty(default=None)
-    ##@check_root_only(default=None)
+    @check_root_only(default=None)
     def get_temporal_measurements(self, time_granularity="M"):
         """
         :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
         :return: pandas dataframe with "breadth", "size", "structural_virality", "unique_nodes", "new_node_ratio" at each timestamp
         """
+        self.reset_cascade()
         temporal_measurements = []
         old_unique_nodes_count = 1  # root node, since we start iterating from depth 1
         for ts, df in self.main_df.set_index(self.timestamp_col).groupby(pd.Grouper(freq=time_granularity), sort=True):
@@ -216,6 +257,7 @@ class SingleCascadeMeasurements:
             temporal_measurements.append(temporal_measurement)
         self.temporal_measurements[time_granularity] = pd.DataFrame(temporal_measurements,
                             columns=["timestamp", "depth", "breadth", "size", "structural_virality", "unique_nodes", "new_node_ratio"])
+        self.set_cascade()
 
     def cascade_timeseries_of(self, attribute, time_granularity):
         """
@@ -224,27 +266,37 @@ class SingleCascadeMeasurements:
         """
         if time_granularity not in self.temporal_measurements:
             self.get_temporal_measurements(time_granularity)
-        meas = self.temporal_measurements[time_granularity][["timestamp",attribute]]
-        meas.fillna(value=np.nan,inplace=True)
-        meas.columns = ['time','value']
-        print('meas',meas)
-        return meas
+
+        if time_granularity in self.temporal_measurements:
+            meas = self.temporal_measurements[time_granularity][["timestamp",attribute]]
+            meas.fillna(value=np.nan,inplace=True)
+            meas.columns = ['time','value']
+            return meas
+        else:
+            return None
 
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=None)
     def get_depth_based_measurements(self):
         """
         :return: pandas dataframe with "breadth", "size", "structural_virality", "unique_nodes", "new_node_ratio" at each depth
         """
-        self.main_df["depth"] = 0
+        self.main_df["depth"] = -1
+        self.reset_cascade()
+        self.cascade.set_root_node(self.main_df)
+
+        self.main_df.loc[self.main_df[self.node_col] == self.cascade.root_node, 'depth'] = 0
+
         seed_nodes = [self.cascade.root_node]
         depth = 1
         while len(seed_nodes) > 0:
-            self.main_df.loc[self.main_df[self.parent_node_col].isin(seed_nodes), 'depth'] = depth
+            self.main_df.loc[ (self.main_df[self.parent_node_col].isin(seed_nodes)) & (self.main_df[self.node_col] != self.main_df[self.parent_node_col]), 'depth'] = depth
             seed_nodes = self.main_df[ (self.main_df[self.parent_node_col].isin(seed_nodes)) & (self.main_df[self.node_col] != self.main_df[self.parent_node_col]) ][self.node_col].values
             assert len(set(seed_nodes)) == len(seed_nodes)
             depth += 1
+
+
         depth_based_measurements = []
         old_unique_nodes_count = 1  # root node, since we start iterating from depth 1
         self.cascade.update_cascade(self.main_df[self.main_df["depth"] == 0])  # initialize with root
@@ -253,6 +305,7 @@ class SingleCascadeMeasurements:
             old_unique_nodes_count, depth_based_measurement = self.get_incremental_cascade_measurements(depth, old_unique_nodes_count, by_depth=True)
             depth_based_measurements.append(depth_based_measurement)
         self.depth_based_measurement_df = pd.DataFrame(depth_based_measurements, columns=["depth", "breadth", "size", "structural_virality", "unique_nodes", "new_node_ratio"])
+        self.set_cascade()
 
     def cascade_depth_by(self, attribute):
         """
@@ -260,9 +313,13 @@ class SingleCascadeMeasurements:
         """
         if self.depth_based_measurement_df is None:
             self.get_depth_based_measurements()
-        meas = self.depth_based_measurement_df[["depth", attribute]]
-        meas.columns = ['depth','value']
-        return meas
+        
+        if not self.depth_based_measurement_df is None:
+            meas = self.depth_based_measurement_df[["depth", attribute]]
+            meas.columns = ['depth','value']
+            return meas
+        else:
+            return None
 
 
     def get_incremental_cascade_measurements(self, grouper_value, old_unique_nodes_count, by_depth=False):
@@ -273,23 +330,23 @@ class SingleCascadeMeasurements:
                              self.cascade.get_cascade_size(),
                              self.cascade.get_cascade_structural_virality(),
                              unique_nodes_count,
-                             (unique_nodes_count - old_unique_nodes_count) / unique_nodes_count]
+                             (unique_nodes_count - old_unique_nodes_count) / float(unique_nodes_count)]
         if by_depth:
             all_measurements = all_measurements[1:]
         return unique_nodes_count, all_measurements
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=0)
     def cascade_participation_gini(self):
         return pysal.inequality.gini.Gini(self.node_participation()).g
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=None)
     def cascade_participation_palma(self):
         return palma_ratio(self.node_participation())
 
     def node_participation(self):
-        return self.main_df.groupby(self.main_df[self.node_col]).size().reset_index(name='counts')['counts'].values
+        return self.main_df.groupby(self.main_df[self.user_col]).size().reset_index(name='counts')['counts'].values
 
     def fraction_of_nodes_with_outside_links(self):
         pass
@@ -313,57 +370,92 @@ class CascadeCollectionMeasurements:
         self.user_col = user_col
         self.filter_on_col = filter_on_col
         self.filter_in_list = filter_in_list
-        # for reddit community measurements
-        if self.filter_on_col is not None and len(filter_in_list) > 0:
-            self.main_df = self.main_df[self.main_df[self.filter_on_col].isin(self.filter_in_list)]
-        self.preprocess_and_create_nx_dict()
-        self.cascade_distribution_measurement_df = None
-        self.community_users_count_timeseries_df = {}
+        if len(self.main_df) > 0:
+            # for reddit community measurements
+            if self.filter_on_col is not None and len(filter_in_list) > 0:
+                self.main_df = self.main_df[self.main_df[self.filter_on_col].isin(self.filter_in_list)]
+            self.cascade_distribution_measurement_df = None
+            self.community_users_count_timeseries_df = {}
 
-        try:
-            self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='s')
-        except:
-            self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='ms')
+            try:
+                self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='s')
+            except:
+                self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='ms')
 
-        try:
-            self.main_df['communityID'] = self.main_df['nodeAttributes'].apply(lambda x: eval(x)['communityID'])
-        except:
-            ''   
+            try:
+                self.main_df['communityID'] = self.main_df['nodeAttributes'].apply(lambda x: eval(x)['communityID'])
+            except:
+                ''
+
+            self.preprocess_and_create_nx_dict()
+            
 
     def preprocess_and_create_nx_dict(self):
-        self.cascades = {}
+        self.scms = {}
         for cascade_identifier, cascade_df in self.main_df.groupby(self.root_node_col):
-            self.cascades[cascade_identifier] = Cascade(main_df=cascade_df, parent_node_col=self.parent_node_col, root_node_col=self.root_node_col, node_col=self.node_col, timestamp_col=self.timestamp_col, user_col=self.user_col)
+            if len(cascade_df[cascade_df[self.node_col] == cascade_df[self.root_node_col]].index) > 0:
+                self.scms[cascade_identifier] = SingleCascadeMeasurements(main_df=cascade_df, parent_node_col=self.parent_node_col, root_node_col=self.root_node_col, node_col=self.node_col, timestamp_col=self.timestamp_col, user_col=self.user_col)
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=None)
+    def get_node_level_measurements(self, single_cascade_measurement, **kwargs):
+        """
+        :param single_cascade_measurement: function to obtain the single cascade level timeseries/distribution measurement
+        :return: dict
+                 key: rootID,
+                 value: dataframe for depth based and timeseries measurements and single value for gini/palma measurements
+                 returned by the cascade_measurement function
+        """
+        print(single_cascade_measurement)
+        return {cascade_identifier: getattr(scm, single_cascade_measurement)(**kwargs)
+                for cascade_identifier, scm in self.scms.items()}
+
+
+    def split_communities(self, data, community_grouper):
+
+        return {community: data[data[community_grouper] == community][[c for c in data.columns if c != community_grouper]] for community in data[community_grouper].unique()}
+
+    @check_empty(default=None)
+    @check_root_only(default=None)
     def get_cascades_distribution_measurements(self):
         """
         :return: pandas dataframe with cascade identiifer and "depth", "breadth", "size", "structural_virality" and lifetime for each cascade in the population
         """
         cascades_distribution_measurements = []
-        for cascade_identifier, cascade in self.cascades.items():
+        for cascade_identifier, scm in self.scms.items():
             cascades_distribution_measurements.append([cascade_identifier,
-                                                       cascade.get_cascade_depth(),
-                                                       cascade.get_cascade_size(),
-                                                       cascade.get_cascade_breadth(),
-                                                       cascade.get_cascade_structural_virality(),
-                                                       cascade.get_cascade_lifetime()
+                                                       scm.community,
+                                                       scm.cascade.get_cascade_depth(),
+                                                       scm.cascade.get_cascade_size(),
+                                                       scm.cascade.get_cascade_breadth(),
+                                                       scm.cascade.get_cascade_structural_virality(),
+                                                       scm.cascade.get_cascade_lifetime()
                                                        ])
-        self.cascade_distribution_measurement_df = pd.DataFrame(cascades_distribution_measurements, columns=["rootID", "depth", "size", "breadth", "structural_virality", "lifetime"])
 
-    def cascade_collection_distribution_of(self, attribute):
+        cols = ["rootID", "communityID","depth", "size", "breadth", "structural_virality", "lifetime"]
+
+        self.cascade_distribution_measurement_df = pd.DataFrame(cascades_distribution_measurements, columns=cols)
+
+    def cascade_collection_distribution_of(self, attribute,community_grouper=None):
         """
         :param attribute: "depth", "size", "breadth", "structural_virality", "lifetime"
         """
         if self.cascade_distribution_measurement_df is None:
             self.get_cascades_distribution_measurements()
-        meas = self.cascade_distribution_measurement_df[["rootID",attribute]]
-        meas.columns = ['content','value']
+        if not community_grouper:
+            meas = self.cascade_distribution_measurement_df[["rootID",attribute]]
+            meas.columns = ['content','value']
+        else:
+            meas = {}
+            for community in self.cascade_distribution_measurement_df[community_grouper].unique():
+                if community != '':
+                    df = self.cascade_distribution_measurement_df[self.cascade_distribution_measurement_df[community_grouper] == community][["rootID",attribute]]
+                    df.columns = ['content','value']
+                    meas[community] = df
         return meas
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=None)
     def get_cascade_collection_timeline_timeseries(self, time_granularity="M", community_grouper=None):
         """
          :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
@@ -382,11 +474,20 @@ class CascadeCollectionMeasurements:
 
             temporal_measurements.append(list(ts) + [mean_lifetime] if community_grouper and community_grouper in self.main_df.columns else [ts, mean_lifetime])
             #temporal_measurements.append([*ts, mean_lifetime] if community_grouper else [ts, mean_lifetime])
-        return pd.DataFrame(temporal_measurements, columns=result_df_columns)
+
+        temporal_measurements = pd.DataFrame(temporal_measurements, columns=result_df_columns).fillna(0)
+
+        if community_grouper:
+            if community_grouper in temporal_measurements and '' not in temporal_measurements[community_grouper]:
+                temporal_measurements = self.split_communities(temporal_measurements,community_grouper)
+            else:
+                temporal_measurements = {}
+
+        return temporal_measurements
 
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=None)
     def get_cascade_collection_size_timeseries(self, time_granularity="M", community_grouper=None):
         """
         :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
@@ -402,24 +503,29 @@ class CascadeCollectionMeasurements:
         for ts, df in self.main_df[self.main_df[self.node_col] == self.main_df[self.root_node_col]]. \
                 set_index(self.timestamp_col).groupby(grouper, sort=True):
             if len(df.index) > 0:
-                mean_size = sum([self.cascades[cascade_identifier].get_cascade_size() for cascade_identifier in df[self.root_node_col].values]) / len(df)
+                mean_size = sum([self.scms[cascade_identifier].cascade.get_cascade_size() for cascade_identifier in df[self.root_node_col].values]) / len(df)
                 temporal_measurements.append(list(ts) + [mean_size] if community_grouper and community_grouper in self.main_df.columns else [ts, mean_size])
             #temporal_measurements.append([*ts, mean_size] if community_grouper else [ts, mean_size])
         meas = pd.DataFrame(temporal_measurements, columns=result_df_columns)
+    
         if len(meas.index) == 0:
             return None
         else:
+            if community_grouper:
+                if community_grouper in meas.columns and '' not in meas[community_grouper]:
+                    meas = self.split_communities(meas,community_grouper)
+                else:
+                    meas = {}
             return meas
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
+    @check_root_only(default=None)
     def get_community_users_count_timeseries(self, time_granularity="M", community_grouper=None):
         """
         :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
          :param community_grouper: column that indicates a community, eg. communityID, keyword
         :return: pandas dataframe with number of unique users who participate in start in that interval
         """
-                             # (unique_nodes_count - old_unique_nodes_count) / unique_nodes_count]
         temporal_measurements = []
 
         if community_grouper in self.main_df.columns:
@@ -431,11 +537,12 @@ class CascadeCollectionMeasurements:
                         old_unique_users_count = 0
                     else:
                         old_unique_users_count = cumul_df[self.user_col].nunique()
-                        cumul_df.append(df, ignore_index=True)
+                        cumul_df = cumul_df.append(df, ignore_index=True)
                     unique_users_count = cumul_df[self.user_col].nunique()
-                    new_users_ratio = (unique_users_count - old_unique_users_count) / unique_users_count
+                    new_users_ratio = (unique_users_count - old_unique_users_count) / float(unique_users_count)
                     temporal_measurements.append([ts, community_identifier, unique_users_count, new_users_ratio])
                 self.community_users_count_timeseries_df[time_granularity] = pd.DataFrame(temporal_measurements, columns=["timestamp", community_grouper, "unique_users", "new_user_ratio"])
+
 
     def community_users_count(self, attribute, time_granularity, community_grouper):
         """
@@ -448,38 +555,86 @@ class CascadeCollectionMeasurements:
                 self.get_community_users_count_timeseries(time_granularity,community_grouper=community_grouper)
             df = self.community_users_count_timeseries_df[time_granularity][["timestamp", community_grouper, attribute]]
             df.columns = ["timestamp",community_grouper,"value"]
-            return df
+            
+            meas = self.split_communities(df,community_grouper)
+
+            return meas
         else:
             return None
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
-    def cascade_collection_initialization_gini(self):
-        root_nodes = [cascade.root_node for cascade in self.cascades.values()]
-        return pysal.inequality.gini.Gini(list(Counter(root_nodes).values())).g
+    def cascade_collection_initialization_gini(self,community_grouper=None):
+        if not community_grouper:
+            root_node_users = self.main_df[self.main_df[self.node_col] == self.main_df[self.root_node_col]][self.user_col].values
+            return pysal.inequality.gini.Gini(list(Counter(root_node_users).values())).g
+        elif community_grouper in self.main_df.columns:
+            meas = {}
+            for community in self.main_df[community_grouper].unique():
+                root_node_users = self.main_df[ (self.main_df[self.node_col] == self.main_df[self.root_node_col]) & (self.main_df[community_grouper] == community) ][self.user_col].values
+                meas[community] = pysal.inequality.gini.Gini(list(Counter(root_node_users).values())).g
+            return meas
+        else:
+            return None
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
-    def cascade_collection_initialization_palma(self):
-        root_nodes = [cascade.root_node for cascade in self.cascades.values()]
-        return palma_ratio(list(Counter(root_nodes).values()))
+    @check_root_only(default=None)
+    def cascade_collection_initialization_palma(self,community_grouper=None):
+        
+        if not community_grouper:
+            root_node_users = self.main_df[self.main_df[self.node_col] == self.main_df[self.root_node_col]][self.user_col].values
+            return palma_ratio(list(Counter(root_node_users).values()))
+        elif community_grouper in self.main_df.columns:
+            meas = {}
+            for community in self.main_df[community_grouper].unique():
+                root_node_users = self.main_df[ (self.main_df[self.node_col] == self.main_df[self.root_node_col]) & (self.main_df[community_grouper] == community) ][self.user_col].values
+                meas[community] = palma_ratio(list(Counter(root_node_users).values()))
+            return meas
+        else:
+            return None
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
-    def cascade_collection_participation_gini(self):
-        all_nodes = [node for cascade in self.cascades.values() for node in cascade.get_cascade_nodes(unique=False)]
-        return pysal.inequality.gini.Gini(list(Counter(all_nodes).values())).g
+    def cascade_collection_participation_gini(self,community_grouper=None):
+        if not community_grouper:
+            all_node_users = self.main_df[self.user_col].values
+            return pysal.inequality.gini.Gini(list(Counter(all_node_users).values())).g
+        elif community_grouper in self.main_df.columns:
+            meas = {}
+            for community in self.main_df[community_grouper].unique():
+                all_node_users = self.main_df[self.main_df[community_grouper] == community][self.user_col].values
+                meas[community] = pysal.inequality.gini.Gini(list(Counter(all_node_users).values())).g
+            return meas
+        else:
+            return None
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
-    def cascade_collection_participation_palma(self):
-        all_nodes = [node for cascade in self.cascades.values() for node in cascade.get_cascade_nodes(unique=False)]
-        return palma_ratio(list(Counter(all_nodes).values()))
+    @check_root_only(default=None)
+    def cascade_collection_participation_palma(self,community_grouper=None):
+        if not community_grouper:
+            all_node_users = self.main_df[self.user_col].values
+            return palma_ratio(list(Counter(all_node_users).values()))
+        elif community_grouper in self.main_df.columns:
+            meas = {}
+            for community in self.main_df[community_grouper].unique():
+                all_node_users = self.main_df[self.main_df[community_grouper] == community][self.user_col].values
+                meas[community] = palma_ratio(list(Counter(all_node_users).values()))
+            return meas
+        else:
+            return None
+
 
     @check_empty(default=None)
-    #@check_root_only(default=None)
-    def fraction_of_nodes_in_lcc(self):
-        return max([cascade.get_cascade_size() for cascade in self.cascades.values()]) / len(self.main_df)
+    @check_root_only(default=None)
+    def fraction_of_nodes_in_lcc(self,community_grouper=None):
+        if not community_grouper:
+            return max([scm.cascade.get_cascade_size() for scm in self.scms.values()]) / len(self.main_df)
+        elif community_grouper in self.main_df.columns:
+            meas = {}
+            for community in self.main_df[community_grouper].unique():
+                meas[community] = max([scm.cascade.get_cascade_size() for scm in self.scms.values() if scm.community == community]) / len(self.main_df[self.main_df[community_grouper] == community])
+            return meas
+        else:
+            return None
+            
 
     def fraction_of_isolated_nodes(self):
         """not applicable since we do not consider isolated nodes as cascades"""
@@ -494,5 +649,4 @@ class CascadeCollectionMeasurements:
         Twitter only measurement
         """
         get_original_tweet_ratio(self.main_df, self.node_col, self.root_node_col)
-
 
