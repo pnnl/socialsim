@@ -1,118 +1,95 @@
 from __future__ import print_function, division
+
 import pandas as pd
-import networkx as nx
-from networkx.algorithms import bipartite
+import igraph as ig
+import snap as sn
+from time import time
+
 import community
 import tqdm
 
-__all__ = ['GithubNetworkMeasurements', 'TwitterNetworkMeasurements', 'RedditNetworkMeasurements']
+from prettytable import PrettyTable
+from prettytable import MSWORD_FRIENDLY
 
+import os
+
+__all__ = ['GithubNetworkMeasurements',
+           'TwitterNetworkMeasurements',
+           'RedditNetworkMeasurements']
 
 class NetworkMeasurements(object):
     """
-    This class implements Network specific   measurements.
-
+    This class implements Network specific   measurements. It uses iGraph and SNAP libraries with Python interfaces.
+    For installation information please visit the websites for the two packages.
+ 
+    iGraph-Python at http://igraph.org/python/
+    SNAP Python at https://snap.stanford.edu/snappy/
     """
-
-    def __init__(self, data, node1='user', node2='repo', test=True):
+    def __init__(self, data, test=False):
         self.main_df = data if isinstance(data, pd.DataFrame) else pd.read_csv(data)
-
 
         if test:
             self.main_df = self.main_df.head(1000)
 
-        assert self.main_df is not None and len(self.main_df) > 0, "Problem with the dataframe creation"
-
-        if len(self.main_df.columns) == 4:
-            self.main_df.columns = ['nodeTime','actionType','nodeUserID','nodeID']
-        elif len(self.main_df.columns) == 6:
-            self.main_df.columns = ['nodeTime','actionType','nodeUserID','nodeID','actionSubType','merged']
-        elif len(self.main_df.columns) == 7:
-            self.main_df.columns = ['nodeID','nodeUserID','parentID','rootID','actionType','nodeTime','nodeAttributes']
-
-        self.node1 = node1
-
-        self.node2 = node2
+        assert self.main_df is not None and len(self.main_df) > 0, 'Problem with the dataframe creation'
 
         self.preprocess()
         
         self.build_undirected_graph(self.main_df)
-
-        self.all_path_lens = self.node_path_distribution()
 
     def preprocess(self):
         return NotImplementedError()
 
     def build_undirected_graph(self, df):
         return NotImplementedError()
-
-    def node_path_distribution(self):
-        all_paths = []
-        for source_node, target_nodes in nx.shortest_path_length(self.G_undirected):
-            # print(source_node, target_nodes)
-            for target_node, dist in target_nodes.items():
-                if target_node != source_node:
-                    all_paths.append({'node1': source_node, 'node2': target_node, 'value': dist})
-        return pd.DataFrame(all_paths)
-
+    
+    def mean_shortest_path_length(self):
+        return sn.GetBfsEffDiamAll(self.gUNsn, 500, False)[3]
+    
     def number_of_nodes(self):
-        return nx.number_of_nodes(self.G_undirected)
+        return ig.Graph.vcount(self.gUNig)
 
     def number_of_edges(self):
-        return nx.number_of_edges(self.G_undirected)
+        return ig.Graph.ecount(self.gUNig)
 
     def density(self):
-        return nx.density(self.G_undirected)
-
-    def shortest_path_length_distribution(self):
-        return self.all_path_lens
-
-    def min_shortest_path_length(self):
-        return min(self.all_path_lens['value'].values)
-
-    def max_shortest_path_length(self):
-        return max(self.all_path_lens['value'].values)
-
-    def mean_shortest_path_length(self):
-        return self.all_path_lens['value'].values.mean()
+        return ig.Graph.density(self.gUNig)
 
     def assortativity_coefficient(self):
-        return nx.degree_assortativity_coefficient(self.G_undirected)
+        return ig.Graph.assortativity_degree(self.gUNig)
 
     def number_of_connected_components(self):
-        return nx.number_connected_components(self.G_undirected)
-
-    def diameter_of_largest_connected_components(self):
-        return nx.diameter(
-            max(nx.connected_component_subgraphs(self.G_undirected), key=len))
+        return len(ig.Graph.components(self.gUNig,mode="WEAK"))
 
     def average_clustering_coefficient(self):
-        return nx.average_clustering(self.G_undirected)
-
-    def min_node_degree(self):
-        return min(dict(self.G_undirected.degree()).values())
+        return sn.GetClustCfAll(self.gUNsn, sn.TFltPrV())[0]
+        #return ig.Graph.transitivity_avglocal_undirected(self.gUNig,mode="zero")
 
     def max_node_degree(self):
-        return max(dict(self.G_undirected.degree()).values())
+        return max(ig.Graph.degree(self.gUNig))
 
     def mean_node_degree(self):
-        return sum([v for x, v in self.G_undirected.degree()]) / len(self.G_undirected.degree())
+        return 2.0*ig.Graph.ecount(self.gUNig)/ig.Graph.vcount(self.gUNig)
 
     def degree_distribution(self):
-        return pd.DataFrame([{'node': node, 'value': deg} for node, deg in self.G_undirected.degree()])
+        degVals = ig.Graph.degree(self.gUNig)
+        return pd.DataFrame([{'node': idx, 'value': degVals[idx]} for idx in range(self.gUNig.vcount())])
 
-    def page_rank_distribution(self):
-        return pd.DataFrame(
-            [{"node": node, "value": pg_rank} for node, pg_rank in nx.pagerank(self.G_undirected).items()])
+    def community_modularity(self):
+        return ig.Graph.modularity(self.gUNig,ig.Graph.community_multilevel(self.gUNig))
 
-    def community_structure(self):
-        try:
-            C = community.best_partition(self.G_undirected)
-            # print(list(C))
-            return community.modularity(C,self.G_undirected)
-        except Exception as e:
-            print(e)
 
+    def get_parent_uids(self,df, parent_node_col="parentID", node_col="nodeID", root_node_col="rootID", user_col="nodeUserID"):
+        """
+        :return: adds parentUserID column with user id of the parent if it exits in df
+        if it doesn't exist, uses the user id of the root instead
+        if both doesn't exist: NaN
+        """
+        tweet_uids = pd.Series(df[user_col].values, index=df[node_col]).to_dict()
+        df['parentUserID'] = df[parent_node_col].map(tweet_uids)
+        df.loc[(df[root_node_col] != df[node_col]) & (df['parentUserID'].isnull()), 'parentUserID'] = \
+            df[(df[root_node_col] != df[node_col]) & (df['parentUserID'].isnull())][root_node_col].map(tweet_uids)
+        return df
 
 class GithubNetworkMeasurements(NetworkMeasurements):
 
@@ -125,23 +102,35 @@ class GithubNetworkMeasurements(NetworkMeasurements):
         pass
 
     def build_undirected_graph(self, df):
-        dnx = nx.from_pandas_edgelist(self.main_df, source=self.node1, target=self.node2)
-
-        dnx.add_nodes_from(self.main_df[self.node1 if self.node2 == self.project_on else self.node2].unique(),
-                           bipartite=0)
-        dnx.add_nodes_from(self.main_df[self.project_on].unique(), bipartite=1)
-
-        top_nodes = {n for n, d in dnx.nodes(data=True) if d['bipartite'] == 0}
-        bottom_nodes = set(dnx) - top_nodes
-        # construct weighted graph, edge weights will be stored in "weight" edge attribute
-        if self.weighted:
-            self.G_undirected = bipartite.weighted_projected_graph(dnx, bottom_nodes)
+        
+        #self.main_df = pd.read_csv(data)
+        self.main_df = self.main_df[['nodeUserID','nodeID']]
+        
+        left_nodes = self.main_df['nodeUserID'].unique().tolist()
+        right_nodes = self.main_df['nodeID'].unique().tolist()
+        el = self.main_df.apply(tuple, axis=1).tolist()
+        edgelist = list(set(el))
+        
+        #iGraph Graph object construction
+        B = ig.Graph.TupleList(edgelist, directed=False)
+        B.vs["type"] = [name in right_nodes for name in B.vs["name"]]
+        p1,p2 = B.bipartite_projection(multiplicity=False) 
+        
+        self.gUNig = None
+        if (self.project_on == "user"):
+            self.gUNig = p1
         else:
-            self.G_undirected = bipartite.projected_graph(dnx, bottom_nodes)
-
+            self.gUNig = p2
+        
+        #SNAP graph object construction
+        self.gUNsn = sn.TUNGraph.New()
+        for v in self.gUNig.vs:
+            self.gUNsn.AddNode(v.index)
+        for e in self.gUNig.es:
+            self.gUNsn.AddEdge(e.source,e.target) 
+        
 
 class TwitterNetworkMeasurements(NetworkMeasurements):
-
     def __init__(self, **kwargs):
         super(TwitterNetworkMeasurements, self).__init__(**kwargs)
 
@@ -149,58 +138,42 @@ class TwitterNetworkMeasurements(NetworkMeasurements):
         pass
 
     def build_undirected_graph(self, df):
-        self.main_df = self.main_df.groupby([self.node1, self.node2]).size().reset_index(name='weight')
-        self.G_undirected = nx.from_pandas_edgelist(self.main_df, source=self.node1, target=self.node2,
-                                                    edge_attr='weight')
 
+        print('df',df)
+        df = self.get_parent_uids(df).dropna(subset=['parentUserID'])
+        edgelist = df[['nodeUserID','parentUserID']].apply(tuple,axis=1).tolist()        
+                        
+        #iGraph Graph object construction
+        self.gUNig = ig.Graph.TupleList(edgelist, directed=False)
+                
+        #SNAP graph object construction
+        self.gUNsn = sn.TUNGraph.New()
+        for v in self.gUNig.vs:
+            self.gUNsn.AddNode(v.index)
+        for e in self.gUNig.es:
+            self.gUNsn.AddEdge(e.source,e.target)         
+        
+      
 class RedditNetworkMeasurements(NetworkMeasurements):
-
     def __init__(self, **kwargs):
         super(RedditNetworkMeasurements, self).__init__(**kwargs)
 
     def preprocess(self):
         pass
 
-    def build_undirected_graph(self, df):
-        self.main_df = self.main_df.groupby([self.node1, self.node2]).size().reset_index(name='weight')
-        self.G_undirected = nx.from_pandas_edgelist(self.main_df, source=self.node1, target=self.node2,
-                                                    edge_attr='weight')
-       
-def run_metrics(ground_measurement, simulation_measurement):
-    from prettytable import PrettyTable
+    def build_undirected_graph(self,df):
 
-    def run(conf):
-        all_results= PrettyTable()
-        all_results.field_names = ["Measurement","Metric","Result"]
-        for measurement_name, params in tqdm.tqdm(conf.items()):
-            #print("Computing Measurement_name: {}".format(measurement_name))
-            try:
-                ground_result = getattr(ground_measurement, params['measurement'])()
+        df = self.get_parent_uids(df).dropna(subset=['parentUserID'])
+        edgelist = df[['nodeUserID','parentUserID']].apply(tuple,axis=1).tolist()
+                
+        #iGraph Graph object construction
+        self.gUNig = ig.Graph.TupleList(edgelist, directed=False)
+                
+        #SNAP graph object construction
+        self.gUNsn = sn.TUNGraph.New()
+        for v in self.gUNig.vs:
+            self.gUNsn.AddNode(v.index)
+        for e in self.gUNig.es:
+            self.gUNsn.AddEdge(e.source,e.target)        
 
-                simulation_result = getattr(simulation_measurement, params['measurement'])()
-
-                for metric_name, metric_fx in params['metrics'].items():
-                    all_results.add_row([measurement_name,metric_name,metric_fx(ground_result, simulation_result)])
-
-            except AttributeError as e:
-                print("No method: {} Error {}".format(measurement_name,e))
-                all_results.add_row([measurement_name, metric_name, "Error"])
-        return all_results
-
-    return run
-
-
-if __name__ == '__main__':
-    import os
-    import network_config as nx_c
-
-    path = '~/infrastructure/cve_network_triplets.csv'
-    # path = '~/test.csv'
-    github_nx_gold = GithubNetworkMeasurements(data=os.path.expanduser(path), node1='actor', node2='repo',
-                                               project_on='repo')
-    github_nx_sim = GithubNetworkMeasurements(data=os.path.expanduser(path), node1='actor', node2='repo',
-                                              project_on='repo')
-
-    results = run_metrics(ground_measurement=github_nx_gold, simulation_measurement=github_nx_sim)(
-        nx_c.network_measurement_params)
-    print(results)
+   

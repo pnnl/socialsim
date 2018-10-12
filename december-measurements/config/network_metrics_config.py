@@ -36,43 +36,10 @@ network_measurement_params = {
         "measurement": 'density',
         "metrics": {
             "absolute_percentage_error": Metrics.absolute_percentage_error,
+            "absolute_difference": Metrics.absolute_difference,
         }
     },
 
-    "shortest_path_length_distribution": {
-        "question": '',
-        "scale": "population",
-        "scenario1":True,
-        "scenario2":False,
-        "sceanrio2":True,
-        "measurement": 'shortest_path_length_distribution',
-        "metrics": {
-            "js_divergence": named_partial(Metrics.js_divergence, discrete=True),
-        }
-    },
-
-    "min_shortest_path_length": {
-        "question": '',
-        "scale": "population",
-        "scenario1":True,
-        "scenario2":False,
-        "sceanrio2":True,
-        "measurement": 'min_shortest_path_length',
-        "metrics": {
-            "absolute_percentage_error": Metrics.absolute_percentage_error,
-        }
-    },
-    "max_shortest_path_length": {
-        "question": '',
-        "scale": "population",
-        "scenario1":True,
-        "scenario2":False,
-        "sceanrio2":True,
-        "measurement": 'max_shortest_path_length',
-        "metrics": {
-            "absolute_percentage_error": Metrics.absolute_percentage_error,
-        }
-    },
     "mean_shortest_path_length": {
         "question": '',
         "scale": "population",
@@ -110,18 +77,6 @@ network_measurement_params = {
         }
     },
 
-    "diameter_of_largest_connected_components": {
-        "question": '',
-        "scale": "population",
-        "scenario1":True,
-        "scenario2":False,
-        "sceanrio2":True,
-        "measurement": 'diameter_of_largest_connected_components',
-        "metrics": {
-            "absolute_percentage_error": Metrics.absolute_percentage_error,
-        }
-    },
-
     "average_clustering_coefficient": {
         "question": '',
         "scale": "population",
@@ -135,17 +90,6 @@ network_measurement_params = {
         }
     },
 
-    "min_node_degree": {
-        "question": '',
-        "scale": "population",
-        "scenario1":True,
-        "scenario2":False,
-        "sceanrio2":True,
-        "measurement": 'min_node_degree',
-        "metrics": {
-            "absolute_percentage_error": Metrics.absolute_percentage_error,
-        }
-    },
     "max_node_degree": {
         "question": '',
         "scale": "population",
@@ -157,6 +101,7 @@ network_measurement_params = {
             "absolute_percentage_error": Metrics.absolute_percentage_error,
         }
     },
+    
     "mean_node_degree": {
         "question": '',
         "scale": "population",
@@ -181,25 +126,13 @@ network_measurement_params = {
         }
     },
 
-    "page_rank_distribution": {
+    "community_modularity": {
         "question": '',
         "scale": "population",
         "scenario1":True,
         "scenario2":False,
         "sceanrio2":True,
-        "measurement": 'page_rank_distribution',
-        "metrics": {
-            "js_divergence": named_partial(Metrics.js_divergence, discrete=True),
-        }
-    },
-
-    "community_structure": {
-        "question": '',
-        "scale": "population",
-        "scenario1":True,
-        "scenario2":False,
-        "sceanrio2":True,
-        "measurement": 'community_structure',
+        "measurement": 'community_modularity',
         "metrics": {
             "absolute_percentage_error": Metrics.absolute_percentage_error,
             "absolute_difference": Metrics.absolute_difference,
