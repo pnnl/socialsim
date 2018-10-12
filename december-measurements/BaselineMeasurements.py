@@ -1,31 +1,42 @@
 import pandas as pd
-import numpy as np
-from datetime import datetime
+import numpy  as np
+
+from datetime        import datetime
 from multiprocessing import Pool
-from functools import partial
-from pathos import pools as pp
+from functools       import partial
+from pathos          import pools as pp
+
 import pickle as pkl
-from UserCentricMeasurements import *
-from ContentCentricMeasurements import *
+
+from UserCentricMeasurements      import *
+from ContentCentricMeasurements   import *
 from CommunityCentricMeasurements import *
+
 from TEMeasurements import *
-from collections import defaultdict
+from collections    import defaultdict
+
 import jpype
 import json
 import os
 
 basedir = os.path.dirname(__file__)
 
-
 class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, TEMeasurements, CommunityCentricMeasurements):
-
-    def __init__(self, dfLoc, content_node_ids=[], user_node_ids=[], metaContentData=False, metaUserData=False,
+    def __init__(self,
+                 dfLoc,
+                 content_node_ids=[],
+                 user_node_ids=[],
+                 metaContentData=False,
+                 metaUserData=False,
                  contentActorsFile=os.path.join(basedir, './baseline_challenge_data/filtUsers-baseline.pkl'),
-                 contentFile=os.path.join(basedir, './baseline_challenge_data/filtRepos-baseline.pkl'), topNodes=[],
+                 contentFile=os.path.join(basedir, './baseline_challenge_data/filtRepos-baseline.pkl'),
+                 topNodes=[],
                  topEdges=[],
-                 previousActionsFile='', community_dictionary=os.path.join(basedir, './baseline_challenge_data/baseline_challenge_community_dict.pkl'),
+                 previousActionsFile='',
+                 community_dictionary=os.path.join(basedir, './baseline_challenge_data/baseline_challenge_community_dict.pkl'),
                  te_config=os.path.join(basedir, './baseline_challenge_data/te_params_baseline.json'),
-                 platform='github'):
+                 platform='github',
+                 use_java=True):
         super(BaselineMeasurements, self).__init__()
 
         self.platform = platform
@@ -38,18 +49,32 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
             # if not it should be a csv file path
             df = pd.read_csv(dfLoc)
 
-        self.contribution_events = ["PullRequestEvent", "PushEvent", "IssuesEvent", "IssueCommentEvent",
-                                    "PullRequestReviewCommentEvent", "CommitCommentEvent", "CreateEvent",
-                                    "post","tweet"]
-        self.popularity_events = ['WatchEvent', 'ForkEvent',
-                                  "comment","post","retweet","quote","reply"]
+        self.contribution_events = ['PullRequestEvent',
+                                    'PushEvent',
+                                    'IssuesEvent',
+                                    'IssueCommentEvent',
+                                    'PullRequestReviewCommentEvent',
+                                    'CommitCommentEvent',
+                                    'CreateEvent',
+                                    'post',
+                                    'tweet']
+
+        self.popularity_events = ['WatchEvent',
+                                  'ForkEvent',
+                                  'comment',
+                                  'post',
+                                  'retweet',
+                                  'quote',
+                                  'reply']
 
         print('preprocessing...')
+
         self.main_df = self.preprocess(df)
 
         print('splitting optional columns...')
+
         # store action and merged columns in a seperate data frame that is not used for most measurements
-        if len(self.main_df.columns) == 6:
+        if platform == 'github' and len(self.main_df.columns) == 6:
             self.main_df_opt = self.main_df.copy()[['action', 'merged']]
             self.main_df = self.main_df.drop(['action', 'merged'], axis=1)
         else:
@@ -57,7 +82,7 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
 
         # For content centric
         print('getting selected content IDs...')
-        #self.selectedContent = self.getSelectC(interested_repos)  # Dictionary of selected repos index == repoid
+
         if self.platform == 'reddit':
             self.selectedContent = self.main_df[self.main_df.root.isin(content_node_ids)]
         elif self.platform == 'twitter':
@@ -69,12 +94,15 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
         self.selectedUsers = self.main_df[self.main_df.user.isin(user_node_ids)]
 
         print('processing repo metatdata...')
+
         # read in external metadata files
         # repoMetaData format - full_name_h,created_at,owner.login_h,language
         # userMetaData format - login_h,created_at,location,company
+
         if metaContentData != False:
             self.useContentMetaData = True
-            self.contentMetaData = self.preprocessContentMeta(pd.read_csv(metaContentData))
+            meta_content_data = pd.read_csv(metaContentData)
+            self.contentMetaData = self.preprocessContentMeta(meta_content_data)
         else:
             self.useContentMetaData = False
         print('processing user metatdata...')
@@ -104,11 +132,14 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
         print('previous event counts', self.previous_event_counts)
 
         # For TE
-        print('starting jvm...')
-        if not jpype.isJVMStarted():
-            jpype.startJVM(jpype.getDefaultJVMPath(), "-ea", "-Djava.class.path=" + "infodynamics.jar")
+        if use_java:
+            print('starting jvm...')
+            if not jpype.isJVMStarted():
+                jpype.startJVM(jpype.getDefaultJVMPath(),
+                               '-ea',
+                               '-Djava.class.path=infodynamics.jar')
 
-        # read pkl files which define nodes of interest for TE measurements                                                                          
+        # read pkl files which define nodes of interest for TE measurements
         self.repo_actors = self.readPickleFile(contentActorsFile)
         self.repo_groups = self.readPickleFile(contentFile)
 
@@ -135,22 +166,38 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
         self.bGetTS = te_params['bGetTS']
 
     def preprocess(self, df):
-        # edit columns, convert date, sort by date
-        if df.columns[0] == '_id':
-            del df['_id']
-        
-        if self.platform == 'github':
-            if len(df.columns) == 4:
-                df.columns = ['time', 'event', 'user', 'content']
-            else:
-                df.columns = ['time', 'event', 'user', 'content', 'action', 'merged']
-        else:
-            df.columns = ['content','user','parent','root','event','time','attributes']
-            try:
-                df['subreddit'] = df['attributes'].apply(lambda x: eval(x)['communityID'])
-            except:
-                ''
 
+        """
+        Edit columns, convert date, sort by date
+        """
+
+        if self.platform=='reddit':
+            mapping = {'actionType' : 'event',
+                       'communityID': 'subreddit',
+                       'keywords'   : 'keywords',
+                       'nodeID'     : 'content',
+                       'nodeTime'   : 'time',
+                       'nodeUserID' : 'user',
+                       'parentID'   : 'parent',
+                       'rootID'     : 'root'}
+        elif self.platform=='twitter':
+            mapping = {'actionType' : 'event',
+                       'nodeID'     : 'content',
+                       'nodeTime'   : 'time',
+                       'nodeUserID' : 'user',
+                       'parentID'   : 'parent',
+                       'rootID'     : 'root'}
+        elif self.platform=='github':
+            mapping = {'nodeID'     : 'content',
+                       'nodeUserID' : 'user',
+                       'actionType' : 'event',
+                       'nodeTime'   : 'time',
+                       'actionSubType': 'action',
+                       'status':'merged'}
+        else:
+            print('Invalid platform.')
+
+        df = df.rename(index=str, columns=mapping)
 
         df = df[df.event.isin(self.popularity_events + self.contribution_events)]
 
