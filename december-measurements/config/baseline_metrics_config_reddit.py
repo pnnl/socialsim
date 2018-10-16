@@ -7,16 +7,13 @@ from BaselineMeasurements import *
 
 import pprint
 
-
 def named_partial(func, *args, **kwargs):
     partial_func = partial(func, *args, **kwargs)
     update_wrapper(partial_func, func)
     partial_func.varnames = func.__code__.co_varnames
     return partial_func
 
-
 reddit_events = ["post","comment"]
-
 
 user_measurement_params = {
     ### User Centric Measurements
@@ -47,7 +44,7 @@ user_measurement_params = {
          "metrics": {"rmse": Metrics.rmse,
                      "ks_test": Metrics.ks_test,
                      "dtw": Metrics.dtw}
-    
+
      },
 
      "user_activity_distribution": {
@@ -63,7 +60,7 @@ user_measurement_params = {
                      "r2": Metrics.r2,
                      "js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
      },
-    
+
      "most_active_users": {
          "question": '24b',
          "scale": "population",
@@ -141,7 +138,7 @@ content_measurement_params = {
          "metrics": {"ks_test": Metrics.ks_test,
                      "js_divergence": named_partial(Metrics.js_divergence, discrete=False)},
      },
-   
+
      "content_growth": {
          "question": 2,
          "scale": "node",
@@ -154,7 +151,7 @@ content_measurement_params = {
          "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
                      "dtw": Metrics.dtw}
      },
-   
+
      "content_contributors": {
          "question": 4,
          "scale": "node",
@@ -167,7 +164,7 @@ content_measurement_params = {
          "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
                      "dtw": Metrics.dtw}
      },
-      
+
     "content_event_distribution_dayofweek": {
         "question": 5,
         "scale": "node",
@@ -179,7 +176,7 @@ content_measurement_params = {
         "measurement_args":{"weekday":True},
         "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
     },
-    
+
      "content_liveliness_distribution": {
          "question": 13,
          "scale": "population",
@@ -193,7 +190,7 @@ content_measurement_params = {
                      "rmse": Metrics.rmse,
                      "r2": Metrics.r2}
      },
-    
+
      "content_liveliness_topk": {
          "question": 13,
          "scale": "population",
@@ -209,7 +206,7 @@ content_measurement_params = {
       "content_activity_disparity_gini_comment": {
           "question": 14,
           "scale": "population",
-          "node_type":"repo",
+          "node_type":"content",
           "scenario1":True,
           "scenario2":True,
           "scenario3":True,
@@ -219,11 +216,11 @@ content_measurement_params = {
           "metrics": {"absolute_difference": Metrics.absolute_difference,
                       "absolute_percentage_error": Metrics.absolute_percentage_error}
       },
-    
+
       "content_activity_disparity_palma_comment": {
           "question": 14,
           "scale": "population",
-          "node_type":"repo",
+          "node_type":"content",
           "scenario1":True,
           "scenario2":True,
           "scenario3":True,
@@ -231,11 +228,11 @@ content_measurement_params = {
           "measurement_args":{"eventTypes":["comment"]},
           "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
       },
-    
+
       "subreddit_user_continue_prop":{
          "question":"30",
          "scale":"node",
-         "node_type":"repo",
+         "node_type":"content",
          "scenario1":True,
          "scenario2":True,
          "scenario3":True,
