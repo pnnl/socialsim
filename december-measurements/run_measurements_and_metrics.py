@@ -443,12 +443,12 @@ def load_measurements(directory, measurement_params, filters={}):
     results = {}
     for measurement_name in measurements:
         print('loading ' + directory + '/' + measurement_name + '.pkl...')
-        with open(directory + '/' + measurement_name + '.pkl', 'r') as f:
-            try:
+        try:
+            with open(directory + '/' + measurement_name + '.pkl', 'r') as f:
                 meas = pickle.load(f)
                 results[measurement_name] = meas
-            except:
-                ''
+        except:
+            ''
     return results
 
 def run_all_metrics(ground_truth,
