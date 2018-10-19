@@ -294,50 +294,7 @@ def generate_plot(simulation=None,
 
                      if show and not fig is None:
                          charts.show_charts()
-
-def check_measurement(m_info,filters):
-
-        # get plotting parameters for given measurement
-        params = measurement_plot_params[measurement_name]
-
-        # keys are the IDs for nodes and communities to extract individual measurements from the dictionary
-        keys = ['']
-        if 'plot_keys' in params:
-            try:
-                keys = simulation.keys()
-            except:
-                keys = ground_truth.keys()
-
-        # only generate limited number of plots for specific nodes/communities if showing to screen
-        if show and len(keys) > 3:
-            keys = keys[:3]
-
-        # loop over individual nodes or communities
-        for key in keys:
-
-            # preprocess measurement output to prepare for plotting
-            if key != '':
-                df = transformer.to_DataFrame(params['data_type'])(sim_data=simulation, ground_truth_data=ground_truth,
-                                                                   key=key)
-            else:
-                df = transformer.to_DataFrame(params['data_type'])(sim_data=simulation, ground_truth_data=ground_truth)
-
-            if not df is None:
-                for p in params['plot']:
-                    # generate plot
-                    fig = charts.chart_factory(p)(df, params['x_axis'], params['y_axis'],
-                                                  (key + ' ' + measurement_name).lstrip(), **params)
-
-                    if plot_dir != '' and not fig is None:
-                        if key != '':
-                            charts.save_charts(fig,
-                                               plot_dir + '/' + measurement_name + '_' + key.replace('/', '@') + '.png')
-                        else:
-                            charts.save_charts(fig, plot_dir + '/' + measurement_name + '.png')
-
-                    if show and not fig is None:
-                        charts.show_charts()
-
+                        
 def check_measurement(m_info, filters):
     """
     Determine whether a given measurement should be included based on the
