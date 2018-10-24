@@ -4,6 +4,9 @@ This repo contains scripts needed to run the measurements and metrics for the So
 
 ## Change Log
 
+* **24 October 2018**:
+   * Added checks for valid values of the status and actionSubType fields to avoid errors when calculating measurements that require these fields.
+
 * **16 October 2018**:
    * We added information added requirement files and instructions to setup an environment for running the code.
    * Fixed Typo in Config
