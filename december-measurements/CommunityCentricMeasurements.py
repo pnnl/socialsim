@@ -240,13 +240,21 @@ class CommunityCentricMeasurements():
 
         if self.main_df_opt is not None:            
 
-            df = df[df['event'] == 'IssuesEvent']
+            df = df[ (df['event'] == 'IssuesEvent') ]
+
+            if len(df) == 0:
+                return(None)
 
             #round times down to nearest unit
             df = df.assign(time=df.time.dt.floor(unit))
 
             #merge optional columns (action, merged) with primary data frame
             df = df.merge(self.main_df_opt,how='left',left_index=True,right_index=True)
+            
+            df = df[(df['action'].isin(['opened','closed','reopened']))]
+
+            if len(df) == 0:
+                return(None)
 
             df = df[['action','event','time','community']].groupby(['time','action','community']).count()  #time,action,count
             df = df.reset_index()
@@ -366,6 +374,9 @@ class CommunityCentricMeasurements():
         user_counts = users['event'].count().reset_index()
         user_list = user_counts[user_counts['event'] >= thresh]
         user_list.columns = ['user',community_field,'total_activity']
+
+        if len(user_list) == 0:
+            return None
 
         df = df.merge(user_list,how='inner',on=['user',community_field])
       

@@ -273,11 +273,9 @@ class ContentCentricMeasurements(object):
                eventTypes - A list of event types to include in the calculation
         Output: g - gini coefficient
         '''
-
-
+        
         if eventTypes is not None:
             df = df[df.event.isin(eventTypes)]
-
 
         #count events for given node type
         if nodeType != 'user':
@@ -373,7 +371,7 @@ class ContentCentricMeasurements(object):
         '''
 
 
-        df = self.main_df
+        df = self.main_df.copy()
 
         if not eventTypes is None:
             df = df[df.event.isin(eventTypes)]
@@ -395,7 +393,7 @@ class ContentCentricMeasurements(object):
         '''
 
 
-        df = self.main_df
+        df = self.main_df.copy()
 
         if eventTypes != None:
             df = df[df['event'].isin(eventTypes)]
@@ -418,12 +416,18 @@ class ContentCentricMeasurements(object):
         '''
 
 
-        df = self.main_df_opt
+        df = self.main_df_opt.copy()
 
         #check if optional columns exist
         if not df is None and 'PullRequestEvent' in self.main_df.event.values:
-            df = df[self.main_df.event.isin(eventTypes)]
-            users_repos = self.main_df[self.main_df.event.isin(eventTypes)]
+
+            idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False]))
+            
+            df = df[idx]
+            users_repos = self.main_df[idx]
+
+            if len(df) == 0:
+                return None
 
             #subset to only pull requests which are being closed (not opened)
             idx = df['action'] == 'closed'

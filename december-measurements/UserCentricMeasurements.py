@@ -255,12 +255,17 @@ class UserCentricMeasurements(object):
     '''
     def getUserPullRequestAcceptance(self,eventTypes=['PullRequestEvent'], thresh=2):
 
-        df = self.main_df_opt
+        df = self.main_df_opt.copy()
 
         if not df is None and 'PullRequestEvent' in self.main_df.event.values:
-            df = df[self.main_df.event.isin(eventTypes)]
-            users_repos = self.main_df[self.main_df.event.isin(eventTypes)]
 
+            idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False]))
+            df = df[idx]
+            users_repos = self.main_df[idx]
+
+            if len(df) == 0:
+                return None
+            
             #subset on only PullRequest close actions (not opens)
             idx = df['action'] == 'closed'
             closes = df[idx]
