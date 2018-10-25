@@ -222,8 +222,11 @@ def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
 
         ground_truth, simulation = check_data_types(ground_truth, simulation)
 
-        ground_truth = ground_truth[np.isfinite(ground_truth)]
-        simulation = simulation[np.isfinite(simulation)]
+        try:
+            ground_truth = ground_truth[np.isfinite(ground_truth)]
+            simulation = simulation[np.isfinite(simulation)]
+        except TypeError:
+            return None
 
         bins = get_hist_bins(ground_truth, simulation,method='doane')
 
@@ -232,9 +235,11 @@ def js_divergence(ground_truth, simulation, discrete=False, base=2.0):
 
     else:
 
-        ground_truth = ground_truth[np.isfinite(ground_truth.value)]
-        simulation = simulation[np.isfinite(simulation.value)]
-
+        try:
+            ground_truth = ground_truth[np.isfinite(ground_truth.value)]
+            simulation = simulation[np.isfinite(simulation.value)]
+        except TypeError:
+            return None
 
         df = ground_truth.merge(simulation,
                                 on=[c for c in ground_truth.columns if c != 'value'],
@@ -459,14 +464,19 @@ def join_dfs(ground_truth,simulation,join='inner',fill_value=0):
     ground_truth - Ground truth measurement data frame with measurement in the "value" column
     simulation - Simulation measurement data frame with measurement in the "value" column
     join - Join method (inner, outer, left, right)
-    fill_value - Value for filling NAs
+    fill_value - Value for filling NAs or method for filling in NAs (e.g. "ffill" for forward fill)
     """
-
 
     df = ground_truth.merge(simulation,
                             on = [c for c in ground_truth.columns if c != 'value'],
                             suffixes = ('_gt','_sim'),
-                            how=join).fillna(fill_value)
+                            how=join)
+
+    try:
+        float(fill_value)
+        df = df.fillna(fill_value)
+    except ValueError:
+        df = df.fillna(method=fill_value)
 
     return(df)
 
