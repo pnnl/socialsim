@@ -5,6 +5,11 @@ This repo contains scripts needed to run the measurements and metrics for the So
 ## Change Log
 
 * **24 October 2018**:
+   * Changed handling of root-only cascades (i.e. posts with no comments or tweets with no replies/retweets/quotes) to no longer return None, allowing metrics to be calculated even if the simulation or the ground truth contains these empty cascades.
+   * Changed the join between simulation and ground truth data for calculation of one-to-one measurements (e.g. RMSE, R2) to an outer join rather than an inner with appropriate filling of missing values (forward fill for cumulative time-series and zero fill for non-cumulative). 
+   * Changed default behavior for community metrics. Previously used the baseline challenge community definitions by default, now calculates each community measurement on the full set of data by default.        
+
+* **24 October 2018**:
    * Added checks for valid values of the status and actionSubType fields to avoid errors when calculating measurements that require these fields.
 
 * **16 October 2018**:
