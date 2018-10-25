@@ -1,6 +1,5 @@
 import Metrics
 
-
 from functools import partial, update_wrapper
 def named_partial(func, *args, **kwargs):
     partial_func = partial(func, *args, **kwargs)
@@ -26,8 +25,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "depth", "time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
         "cascade_breadth_by_time": {
@@ -38,8 +37,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "breadth", "time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
         "cascade_structural_virality_over_time": {
@@ -50,8 +49,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "structural_virality", "time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value=0),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value=0)},
             "temporal_vs_batch":"Temporal"
         },
         "cascade_size_over_time": {
@@ -62,8 +61,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "size", "time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
         "cascade_uniq_users_by_time": {
@@ -76,6 +75,8 @@ def get_node_level_measurements_params(time_granularity):
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "unique_nodes", "time_granularity": time_granularity},
             "metrics": {"rmse": Metrics.rmse,
                         "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch": "Temporal"
         },
         "cascade_new_user_ratio_by_time": {
@@ -88,6 +89,8 @@ def get_node_level_measurements_params(time_granularity):
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "new_node_ratio", "time_granularity": time_granularity},
             "metrics": {"rmse": Metrics.rmse,
                         "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value=0),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value=0)},
             "temporal_vs_batch": "Temporal"
         },
         "cascade_breadth_by_depth": {
@@ -98,8 +101,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_depth_by", "attribute": "breadth"},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Batch"
         },
         "cascade_new_user_ratio_by_depth": {
@@ -110,8 +113,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_depth_by", "attribute": "new_node_ratio"},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Batch"
         },
         "cascade_uniq_users_by_depth": {
@@ -122,8 +125,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_depth_by", "attribute": "unique_nodes"},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Batch"
         },
         "cascade_participation_gini": {
@@ -224,8 +227,8 @@ def get_community_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"get_cascade_collection_size_timeseries",
             "measurement_args":{"community_grouper": "communityID", "time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
         "community_cascade_lifetime_timeseries": {
@@ -247,8 +250,8 @@ def get_community_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"community_users_count",
             "measurement_args":{"attribute": "unique_users", "community_grouper": "communityID", "time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
         "community_new_user_ratio_by_time": {
@@ -259,8 +262,8 @@ def get_community_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"community_users_count",
             "measurement_args":{"attribute": "new_user_ratio", "community_grouper": "communityID", "time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value=0),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value=0)},
             "temporal_vs_batch":"Temporal"
         },
         "community_cascade_initialization_gini": {
@@ -392,8 +395,8 @@ def get_population_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"get_cascade_collection_size_timeseries",
             "measurement_args":{"time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
         "population_cascade_lifetime_timeseries": {
@@ -404,8 +407,8 @@ def get_population_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"get_cascade_collection_lifetime_timeseries",
             "measurement_args":{"time_granularity": time_granularity},
-            "metrics":{"rmse": Metrics.rmse,
-                       "r2": Metrics.r2},
+            "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Temporal"
         },
         "population_cascade_initialization_gini": {

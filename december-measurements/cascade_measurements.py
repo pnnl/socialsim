@@ -240,7 +240,7 @@ class SingleCascadeMeasurements:
 
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    #@check_root_only(default=None)
     def get_temporal_measurements(self, time_granularity="M"):
         """
         :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
@@ -248,11 +248,11 @@ class SingleCascadeMeasurements:
         """
         self.reset_cascade()
         temporal_measurements = []
-        old_unique_nodes_count = 1  # root node, since we start iterating from depth 1
+        old_unique_nodes_count = 0  # root node, since we start iterating from depth 1
         for ts, df in self.main_df.set_index(self.timestamp_col).groupby(pd.Grouper(freq=time_granularity), sort=True):
             self.cascade.update_cascade(df)
-            if len(df) == 1: # root only
-                continue
+#            if len(df) == 1: # root only
+#                continue
             old_unique_nodes_count, temporal_measurement = self.get_incremental_cascade_measurements(ts, old_unique_nodes_count)
             temporal_measurements.append(temporal_measurement)
         self.temporal_measurements[time_granularity] = pd.DataFrame(temporal_measurements,
@@ -277,7 +277,7 @@ class SingleCascadeMeasurements:
 
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    #@check_root_only(default=None)
     def get_depth_based_measurements(self):
         """
         :return: pandas dataframe with "breadth", "size", "structural_virality", "unique_nodes", "new_node_ratio" at each depth
@@ -295,9 +295,8 @@ class SingleCascadeMeasurements:
             seed_nodes = self.main_df[ (self.main_df[self.parent_node_col].isin(seed_nodes)) & (self.main_df[self.node_col] != self.main_df[self.parent_node_col]) ][self.node_col].values
             assert len(set(seed_nodes)) == len(seed_nodes)
             depth += 1
-
-
-        depth_based_measurements = []
+        
+        depth_based_measurements = [[0,0,0,0,0,0]]
         old_unique_nodes_count = 1  # root node, since we start iterating from depth 1
         self.cascade.update_cascade(self.main_df[self.main_df["depth"] == 0])  # initialize with root
         for depth in range(1, max(self.main_df['depth'])+1):
@@ -311,6 +310,7 @@ class SingleCascadeMeasurements:
         """
         :param attribute: "breadth", "size", "structural_virality", "unique_nodes", "new_node_ratio"
         """
+
         if self.depth_based_measurement_df is None:
             self.get_depth_based_measurements()
         
@@ -380,7 +380,10 @@ class CascadeCollectionMeasurements:
             try:
                 self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='s')
             except:
-                self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='ms')
+                try:
+                    self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col],unit='ms')
+                except:
+                    self.main_df[timestamp_col] = pd.to_datetime(self.main_df[timestamp_col])
 
             try:
                 self.main_df['communityID'] = self.main_df['nodeAttributes'].apply(lambda x: eval(x)['communityID'])
@@ -397,7 +400,7 @@ class CascadeCollectionMeasurements:
                 self.scms[cascade_identifier] = SingleCascadeMeasurements(main_df=cascade_df, parent_node_col=self.parent_node_col, root_node_col=self.root_node_col, node_col=self.node_col, timestamp_col=self.timestamp_col, user_col=self.user_col)
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    #@check_root_only(default=None)
     def get_node_level_measurements(self, single_cascade_measurement, **kwargs):
         """
         :param single_cascade_measurement: function to obtain the single cascade level timeseries/distribution measurement
@@ -416,7 +419,7 @@ class CascadeCollectionMeasurements:
         return {community: data[data[community_grouper] == community][[c for c in data.columns if c != community_grouper]] for community in data[community_grouper].unique()}
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    #@check_root_only(default=None)
     def get_cascades_distribution_measurements(self):
         """
         :return: pandas dataframe with cascade identiifer and "depth", "breadth", "size", "structural_virality" and lifetime for each cascade in the population
@@ -455,7 +458,7 @@ class CascadeCollectionMeasurements:
         return meas
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    #@check_root_only(default=None)
     def get_cascade_collection_timeline_timeseries(self, time_granularity="M", community_grouper=None):
         """
          :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
@@ -487,7 +490,7 @@ class CascadeCollectionMeasurements:
 
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    #@check_root_only(default=None)
     def get_cascade_collection_size_timeseries(self, time_granularity="M", community_grouper=None):
         """
         :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
@@ -519,7 +522,7 @@ class CascadeCollectionMeasurements:
             return meas
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    #@check_root_only(default=None)
     def get_community_users_count_timeseries(self, time_granularity="M", community_grouper=None):
         """
         :param time_granularity: "Y", "M", "D", "H" [years/months/days/hours]
@@ -623,7 +626,7 @@ class CascadeCollectionMeasurements:
 
 
     @check_empty(default=None)
-    @check_root_only(default=None)
+    @check_root_only(default=1.0)
     def fraction_of_nodes_in_lcc(self,community_grouper=None):
         if not community_grouper:
             return max([scm.cascade.get_cascade_size() for scm in self.scms.values()]) / len(self.main_df)
