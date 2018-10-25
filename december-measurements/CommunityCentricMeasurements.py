@@ -35,14 +35,14 @@ class CommunityCentricMeasurements():
      "type_of_community2":...}
      Inputs: path - file path of pickle file
     '''
-    def loadCommunities(self,path,content_field='nodeID'):
+    def loadCommunities(self,path,content_field='content'):
         if path != '':
             with open(path, 'rb') as handle:
                 self.comDic = pkl.load(handle)
                 for key in self.comDic.keys():
                     print(self.comDic[key].keys())
         else:
-            self.comDic = {"topic":{"default":self.main_df[content_field].unique()}}
+            self.comDic = {"topic":{"all":self.main_df[content_field].unique()}}
 
 
     def getCommmunityDF(self,community_col='subreddit'):
@@ -380,7 +380,6 @@ class CommunityCentricMeasurements():
 
         df = df.merge(user_list,how='inner',on=['user',community_field])
       
-
         def user_burstiness(grp):
             #get interevent times for each user seperately
             if len(grp['user'].unique()) > 1:
