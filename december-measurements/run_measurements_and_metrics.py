@@ -900,17 +900,17 @@ if __name__ == '__main__':
 
 
     print('Running examples!')
-    cascade_examples('reddit')
-    cascade_examples('twitter')
+    #cascade_examples('reddit')
+    #cascade_examples('twitter')
 
-    network_examples('reddit')
-    network_examples('twitter')
-    network_examples('github')
+    #network_examples('reddit')
+    #network_examples('twitter')
+    #network_examples('github')
 
-    baseline_examples('reddit')
-    baseline_examples('twitter')
-    baseline_examples('github')
+    #baseline_examples('reddit')
+    #baseline_examples('twitter')
+    #baseline_examples('github')
     print('Done.')
 
-    print("Running all challenge meausurements for one platform")
-    measurements = run_challenge_measurements('reddit_data_sample.json','reddit_data_sample.json',platform='reddit')
+    print("Running all challenge measurements for one platform")
+    measurements = run_challenge_measurements('reddit_data_sample.json',platform='reddit')
