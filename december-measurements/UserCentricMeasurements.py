@@ -255,9 +255,10 @@ class UserCentricMeasurements(object):
     '''
     def getUserPullRequestAcceptance(self,eventTypes=['PullRequestEvent'], thresh=2):
 
-        df = self.main_df_opt.copy()
 
-        if not df is None and 'PullRequestEvent' in self.main_df.event.values:
+        if not self.main_df_opt is None and 'PullRequestEvent' in self.main_df.event.values:
+
+            df = self.main_df_opt.copy()
 
             idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False]))
             df = df[idx]

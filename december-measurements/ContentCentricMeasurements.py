@@ -415,11 +415,10 @@ class ContentCentricMeasurements(object):
         Output: Data frame with the proportion of accepted pull requests for each repo
         '''
 
-
-        df = self.main_df_opt.copy()
-
         #check if optional columns exist
-        if not df is None and 'PullRequestEvent' in self.main_df.event.values:
+        if not self.main_df_opt is None and 'PullRequestEvent' in self.main_df.event.values:
+
+            df = self.main_df_opt.copy()
 
             idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False]))
             
@@ -485,9 +484,14 @@ class ContentCentricMeasurements(object):
         if len(df.index) < 1:
             return {}
 
-        measurement = df.groupby([content_field,'user']).apply(lambda x: x.value.cumsum()).reset_index()
-        measurement['event'] = df['event'].reset_index(drop=True)
-
+        grouped = df.groupby([content_field,'user'])
+        if len(grouped) > 1:
+            measurement = grouped.apply(lambda x: x.value.cumsum()).reset_index()
+            measurement['event'] = df['event'].reset_index(drop=True)
+        else:
+            measurement = df.copy()
+            measurement['value'] = df['value'].cumsum()
+            measurement['event'] = df['event']
 
         if self.previous_event_counts is not None:
             measurement = measurement.merge(self.previous_event_counts,on=['user',content_field],how='left').fillna(0)
