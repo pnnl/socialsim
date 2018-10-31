@@ -4,6 +4,7 @@ import pandas as pd
 import igraph as ig
 import snap as sn
 from time import time
+import numpy as np
 
 import community
 import tqdm
@@ -29,6 +30,7 @@ class NetworkMeasurements(object):
         self.main_df = data if isinstance(data, pd.DataFrame) else pd.read_csv(data)
 
         if test:
+            print('Running test version of network measurements')
             self.main_df = self.main_df.head(1000)
 
         assert self.main_df is not None and len(self.main_df) > 0, 'Problem with the dataframe creation'
@@ -37,6 +39,7 @@ class NetworkMeasurements(object):
         
         self.build_undirected_graph(self.main_df)
 
+ 
     def preprocess(self):
         return NotImplementedError()
 
@@ -106,14 +109,16 @@ class GithubNetworkMeasurements(NetworkMeasurements):
         #self.main_df = pd.read_csv(data)
         self.main_df = self.main_df[['nodeUserID','nodeID']]
         
-        left_nodes = self.main_df['nodeUserID'].unique().tolist()
-        right_nodes = self.main_df['nodeID'].unique().tolist()
+        left_nodes = np.array(self.main_df['nodeUserID'].unique().tolist())
+        right_nodes = np.array(self.main_df['nodeID'].unique().tolist())
         el = self.main_df.apply(tuple, axis=1).tolist()
         edgelist = list(set(el))
-        
+ 
         #iGraph Graph object construction
         B = ig.Graph.TupleList(edgelist, directed=False)
-        B.vs["type"] = [name in right_nodes for name in B.vs["name"]]
+        names = np.array(B.vs["name"])
+        types = np.isin(names,right_nodes)
+        B.vs["type"] = types#[name in right_nodes for name in B.vs["name"]]
         p1,p2 = B.bipartite_projection(multiplicity=False) 
         
         self.gUNig = None
@@ -139,7 +144,6 @@ class TwitterNetworkMeasurements(NetworkMeasurements):
 
     def build_undirected_graph(self, df):
 
-        print('df',df)
         df = self.get_parent_uids(df).dropna(subset=['parentUserID'])
         edgelist = df[['nodeUserID','parentUserID']].apply(tuple,axis=1).tolist()        
                         
