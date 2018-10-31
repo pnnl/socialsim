@@ -4,6 +4,10 @@ This repo contains scripts needed to run the measurements and metrics for the So
 
 ## Change Log
 
+* **31 October 2018**:
+  * Improved efficiency of the network initialization
+  * Added cascade measurements to the visualization configuration.  Cascade measurements will now generate visualizations if the plot_flag is set to True.
+
 * **25 October 2018**:
    * Changed handling of root-only cascades (i.e. posts with no comments or tweets with no replies/retweets/quotes) to no longer return None, allowing metrics to be calculated even if the simulation or the ground truth contains these empty cascades.
    * Changed the join between simulation and ground truth data for calculation of one-to-one measurements (e.g. RMSE, R2) to an outer join rather than an inner with appropriate filling of missing values (forward fill for cumulative time-series and zero fill for non-cumulative). 
