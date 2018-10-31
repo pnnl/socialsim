@@ -119,7 +119,15 @@ class GithubNetworkMeasurements(NetworkMeasurements):
         names = np.array(B.vs["name"])
         types = np.isin(names,right_nodes)
         B.vs["type"] = types
-        self.gUNig = B.bipartite_projection(multiplicity=False, which = 0)
+        p1,p2 = B.bipartite_projection(multiplicity=False)
+        
+        self.gUNig = None
+        if (self.project_on == "user"):
+            self.gUNig = p1
+        else:
+            self.gUNig = p2
+
+        #self.gUNig = B.bipartite_projection(multiplicity=False, which = 0)
 
         
         #SNAP graph object construction
