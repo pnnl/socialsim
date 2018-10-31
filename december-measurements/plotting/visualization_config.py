@@ -228,3 +228,175 @@ measurement_plot_params = {
         "plot": ['hist']
     }
 }
+
+cascade_measurement_plot_params = {
+    'cascade_breadth_by_depth': {
+        'data_type': 'dict_DataFrame',
+        'plot': ['time_series'],
+        'x_axis': 'Depth',
+        'y_axis': 'Breadth',
+        'plot_keys':'cascade'},
+
+    'cascade_breadth_by_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Breadth',
+         'plot_keys':'cascade'},
+
+    'cascade_max_depth_over_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Depth',
+         'plot_keys':'cascade'},
+
+    'cascade_new_user_ratio_by_depth':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Depth',
+         'y_axis': 'New User Ratio',
+         'plot_keys':'cascade'},
+
+    'cascade_new_user_ratio_by_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'New User Ratio',
+         'plot_keys':'cascade'},
+
+    'cascade_size_over_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Cascade Size',
+         'plot_keys':'cascade'},
+
+    'cascade_structural_virality_over_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Structural Virality',
+         'plot_keys':'cascade'},
+
+    'cascade_uniq_users_by_depth':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Depth',
+         'y_axis': 'Unique Users',
+         'plot_keys':'cascade'},
+
+    'cascade_uniq_users_by_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Unique Users',
+         'plot_keys':'cascade'},
+
+    'community_cascade_lifetime_distribution':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Lifetime',
+         'y_axis': 'Number of Cascades',
+         'plot_keys':'community'},
+
+    'community_cascade_lifetime_timeseries':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Cascade Lifetime',
+         'plot_keys':'community'},
+
+    'community_cascade_size_distribution':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Size',
+         'y_axis': 'Number of Cascades',
+         'plot_keys':'community'},
+
+    'community_cascade_size_timeseries':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Time',
+         'y_axis': 'Cascade Size',
+         'plot_keys':'community'},
+
+    'community_max_breadth_distribution':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Max Breadth',
+         'y_axis': 'Number of Cascades',
+         'plot_keys':'community'},
+
+    'community_max_depth_distribution':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Max Depth',
+         'y_axis': 'Number of Cascades',
+         'plot_keys':'community'},
+
+    'community_new_user_ratio_by_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'New User Ratio',
+         'plot_keys':'community'},
+
+    'community_structural_virality_distribution':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Structural Virality',
+         'y_axis': 'Number of Cascade',
+         'plot_keys':'community'},
+
+    'community_unique_users_by_time':
+        {'data_type': 'dict_DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Unique Users',
+         'plot_keys':'community'},
+
+    'population_cascade_lifetime_distribution':
+        {'data_type': 'DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Cascade Lifetime',
+         'y_axis': 'Number of Cascades'},
+
+    'population_cascade_lifetime_timeseries':
+        {'data_type': 'DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Cascade Lifetime'},
+
+    'population_cascade_size_distribution':
+        {'data_type': 'DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Size',
+         'y_axis': 'Number of Cascades'},
+
+    'population_cascade_size_timeseries':
+        {'data_type': 'DataFrame',
+         'plot': ['time_series'],
+         'x_axis': 'Date',
+         'y_axis': 'Cascade Size'},
+
+    'population_max_breadth_distribution':
+        {'data_type': 'DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Max Breadth',
+         'y_axis': 'Number of Cascades'},
+
+    'population_max_depth_distribution':
+        {'data_type': 'DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Max Depth',
+         'y_axis': 'Number of Cascades'},
+
+    'population_structural_virality_distribution':
+        {'data_type': 'DataFrame',
+         'plot': ['hist'],
+         'x_axis': 'Structural Virality',
+         'y_axis': 'Number of Cascade'}
+}
+
+measurement_plot_params.update(cascade_measurement_plot_params)

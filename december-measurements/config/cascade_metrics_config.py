@@ -473,8 +473,8 @@ def get_population_level_measurements_params(time_granularity="M"):
 
 
 cascade_node_params = get_node_level_measurements_params('H')
-cascade_community_params = get_community_level_measurements_params('H')
-cascade_population_params = get_population_level_measurements_params('H')
+cascade_community_params = get_community_level_measurements_params('D')
+cascade_population_params = get_population_level_measurements_params('D')
 
 cascade_measurement_params = {}
 cascade_measurement_params.update(cascade_node_params)
