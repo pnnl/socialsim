@@ -118,14 +118,9 @@ class GithubNetworkMeasurements(NetworkMeasurements):
         B = ig.Graph.TupleList(edgelist, directed=False)
         names = np.array(B.vs["name"])
         types = np.isin(names,right_nodes)
-        B.vs["type"] = types#[name in right_nodes for name in B.vs["name"]]
-        p1,p2 = B.bipartite_projection(multiplicity=False) 
-        
-        self.gUNig = None
-        if (self.project_on == "user"):
-            self.gUNig = p1
-        else:
-            self.gUNig = p2
+        B.vs["type"] = types
+        self.gUNig = B.bipartite_projection(multiplicity=False, which = 0)
+
         
         #SNAP graph object construction
         self.gUNsn = sn.TUNGraph.New()
