@@ -5,6 +5,7 @@ This repo contains scripts needed to run the measurements and metrics for the So
 ## Change Log
 
 * **2 November 2018**:
+  * Added code for reconstructing Twitter cascades using follower data (identifying the parentID for retweets and the rootID for reply tweets) in december-measurements/cascade_reconstruction.
   * Improved efficiency of cascade measurements by switching to igraph implementation and making improvements to the time series meausurements
   * Fix handling of cascades where root node is not included in the simulation input
 
