@@ -4,6 +4,10 @@ This repo contains scripts needed to run the measurements and metrics for the So
 
 ## Change Log
 
+* **2 November 2018**:
+  * Improved efficiency of cascade measurements by switching to igraph implementation and making improvements to the time series meausurements
+  * Fix handling of cascades where root node is not included in the simulation input
+
 * **31 October 2018**:
   * Improved efficiency of the network initialization
   * Added cascade measurements to the visualization configuration.  Cascade measurements will now generate visualizations if the plot_flag is set to True.
