@@ -86,8 +86,17 @@ class CommunityCentricMeasurements():
                 meas[community] = df[df.community == community]
                 del meas[community]["community"]
         elif isinstance(df,pd.Series):
+            series_output = False
             for community in df.index:
                 meas[community] = df[community]
+                try:
+                    len(df[community])
+                    series_output = True
+                except:
+                    ''
+            if series_output:
+                for community in meas:
+                    meas[community] = pd.Series(meas[community])
 
         return meas
 
@@ -172,7 +181,7 @@ class CommunityCentricMeasurements():
         
         df['value'] = [0 for i in range(len(df))]
         df = df.set_index('time')
- 
+
         #get event counts for each user within each time unit
         df = df[['user','value',community_field]].groupby([ pd.TimeGrouper(unit), 'user', community_field]).count()
         df = df.reset_index()
@@ -402,7 +411,6 @@ class CommunityCentricMeasurements():
             return grp
 
         b = df.groupby(community_field).apply(user_burstiness).reset_index()[[community_field,'value']].set_index(community_field)['value']
-
 
         measurement = self.getCommunityMeasurementDict(b)
 

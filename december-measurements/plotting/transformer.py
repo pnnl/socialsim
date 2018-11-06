@@ -92,14 +92,14 @@ def convert_dict_DataFrame(ground_truth_data=None, sim_data=None, **kwargs):
 
     if kwargs.get('key'):
 
-        if not ground_truth_data is None and not sim_data is None:
+        if not ground_truth_data is None and not sim_data is None and kwargs.get('key') in ground_truth_data and kwargs.get('key') in sim_data:
             merge_columns = [c for c in ground_truth_data[kwargs.get('key')].columns if c != 'value']
             result_df = pd.merge(ground_truth_data[kwargs.get('key')], sim_data[kwargs.get('key')], on=merge_columns, how='outer')
             result_df.columns = merge_columns + ['Ground Truth', 'Simulation']
-        elif not ground_truth_data is None:
+        elif not ground_truth_data is None and kwargs.get('key') in ground_truth_data:
             result_df = ground_truth_data[kwargs.get('key')].copy()
             result_df.rename(index=str,columns={"value":"Ground Truth"},inplace=True)
-        elif not sim_data is None:
+        elif not sim_data is None and kwargs.get('key') in sim_data:
             result_df = sim_data[kwargs.get('key')].copy()
             result_df.rename(index=str,columns={"value":"Simulation"},inplace=True)
         else:
@@ -113,14 +113,14 @@ def convert_dict_Series(ground_truth_data=None, sim_data=None, **kwargs):
     if kwargs.get('key'):
 
         both = True
-        if not sim_data is None:
+        if not sim_data is None and kwargs.get('key') in sim_data:
             sim_data= sim_data[kwargs.get('key')]
             result_df = pd.DataFrame(sim_data).copy()
             result_df.rename(index=str,columns={"value":"Simulation"},inplace=True)
         else:
             both = False
 
-        if not ground_truth_data is None:
+        if not ground_truth_data is None and kwargs.get('key') in ground_truth_data:
             ground_truth_data=ground_truth_data[kwargs.get('key')]
             result_df = pd.DataFrame(ground_truth_data).copy()
             result_df.rename(index=str,columns={"value":"Ground Truth"},inplace=True)

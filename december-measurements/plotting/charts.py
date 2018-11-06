@@ -9,6 +9,8 @@ sns.set(style="whitegrid")
 def histogram(df, xlabel, ylabel, title, **kwargs):
     n_bins = 100
 
+    print('df',df)
+
     if 'Simulation' in df.columns and 'Ground Truth' in df.columns:
 
         gold_data = df.dropna(subset=["Ground Truth"])["Ground Truth"]
@@ -24,6 +26,8 @@ def histogram(df, xlabel, ylabel, title, **kwargs):
         else: 
             data = df.dropna(subset=["Ground Truth"])['Ground Truth']
             gold_data = data.copy()
+    else:
+        return None
 
     _,bins = np.histogram(data,bins='doane')
     #bins = np.linspace(data.min(), data.max(), n_bins)
