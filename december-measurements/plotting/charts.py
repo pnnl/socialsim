@@ -9,8 +9,6 @@ sns.set(style="whitegrid")
 def histogram(df, xlabel, ylabel, title, **kwargs):
     n_bins = 100
 
-    print('df',df)
-
     if 'Simulation' in df.columns and 'Ground Truth' in df.columns:
 
         gold_data = df.dropna(subset=["Ground Truth"])["Ground Truth"]

@@ -156,8 +156,8 @@ measurement_plot_params = {
 
     "content_liveliness_distribution": {
         "data_type": "DataFrame",
-        "y_axis": "Number of Repos",
-        "x_axis": "Repo Liveliness",
+        "y_axis": "Number of Repos/Posts/Tweets",
+        "x_axis": "Number of Forks/Comments/Replies",
         "plot": ['hist']
     },
 
@@ -170,8 +170,8 @@ measurement_plot_params = {
 
     "content_popularity_distribution": {
         "data_type": "DataFrame",
-        "y_axis": "Number of Repos",
-        "x_axis": "Repo Popularity",
+        "y_axis": "Number of Repos/Tweets",
+        "x_axis": "Number of Watches/Rewtweets",
         "plot": ['hist']
     },
 
@@ -189,7 +189,7 @@ measurement_plot_params = {
     "user_popularity": {
         "data_type": "DataFrame",
         "y_axis": "Number of Users",
-        "x_axis": "Number of Watches and Forks on User Repos",
+        "x_axis": "Popularity of User's Repos/Tweets/Posts",
         "plot": ['hist']
     },
 
@@ -223,7 +223,7 @@ measurement_plot_params = {
 
     "user_unique_content": {
         "data_type": "DataFrame",
-        "x_axis": "Number of Unique Repos",
+        "x_axis": "Number of Unique Repos/Posts/Tweets",
         "y_axis": "Number of Users",
         "plot": ['hist']
     }
