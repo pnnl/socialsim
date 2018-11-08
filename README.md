@@ -144,7 +144,7 @@ For example:
 ```python                                                                                                            
 ground_truth = BaselineMeasurements(ground_truth_data_frame)
 simulation = BaselineMeasurements(simulation_data_frame)
-gt_measurement, sim_measurement, metric = run_metrics(ground_truth, simulation, github_measurement_params, "user_unique_content")
+gt_measurement, sim_measurement, metric = run_metrics(ground_truth, simulation, "user_unique_content", github_measurement_params)
 ```
 
 #### Running All Measurements
