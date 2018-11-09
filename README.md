@@ -127,7 +127,7 @@ result = measurement.getUserUniqueRepos(eventType=contribution_events)
 
 #### Running a Single Measurement
 
-The `run_measurement` funciton can be used to calculate the measurement output for a single measurement on a given data set using the measurement_params configuration, which contains the parameters to be used for evaluation during the challenge event.  The arguments for this function include the data, the measurement_params dictionary, and the name of the measurement to apply.
+The `run_measurement` function can be used to calculate the measurement output for a single measurement on a given data set using the measurement_params configuration, which contains the parameters to be used for evaluation during the challenge event.  The arguments for this function include the data, the measurement_params dictionary, and the name of the measurement to apply.
 
 For example, if we want to run one of the baseline GitHub measurements on the simulation data, we need to provide the `github_measurement_params` dictionary which contains the relavent configution and provide the name of the specific measurement we are interested in:
 
