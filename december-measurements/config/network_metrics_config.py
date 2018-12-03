@@ -11,6 +11,7 @@ network_measurement_params = {
         "sceanrio2":True,
         "measurement": "number_of_nodes",
         "metrics": {
+            "absolute_difference": Metrics.absolute_difference,
             "absolute_percentage_error": Metrics.absolute_percentage_error,
         }
     },
@@ -23,6 +24,7 @@ network_measurement_params = {
         "sceanrio2":True,
         "measurement": 'number_of_edges',
         "metrics": {
+            "absolute_difference": Metrics.absolute_difference,
             "absolute_percentage_error": Metrics.absolute_percentage_error,
         }
     },
@@ -48,6 +50,7 @@ network_measurement_params = {
         "sceanrio2":True,
         "measurement": 'mean_shortest_path_length',
         "metrics": {
+            "absolute_difference": Metrics.absolute_difference,
             "absolute_percentage_error": Metrics.absolute_percentage_error,
         }
     },
@@ -73,6 +76,7 @@ network_measurement_params = {
         "sceanrio2":True,
         "measurement": 'number_of_connected_components',
         "metrics": {
+            "absolute_difference": Metrics.absolute_difference,
             "absolute_percentage_error": Metrics.absolute_percentage_error,
         }
     },
@@ -98,6 +102,7 @@ network_measurement_params = {
         "sceanrio2":True,
         "measurement": 'max_node_degree',
         "metrics": {
+            "absolute_difference": Metrics.absolute_difference,
             "absolute_percentage_error": Metrics.absolute_percentage_error,
         }
     },
@@ -110,6 +115,7 @@ network_measurement_params = {
         "sceanrio2":True,
         "measurement": 'mean_node_degree',
         "metrics": {
+            "absolute_difference": Metrics.absolute_difference,
             "absolute_percentage_error": Metrics.absolute_percentage_error,
         }
     },

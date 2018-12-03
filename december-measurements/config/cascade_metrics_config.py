@@ -26,6 +26,7 @@ def get_node_level_measurements_params(time_granularity):
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "depth", "time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "nrmse":named_partial(Metrics.rmse,relative=True,join='outer',fill_value='ffill'),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
@@ -38,6 +39,7 @@ def get_node_level_measurements_params(time_granularity):
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "breadth", "time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "nrmse":named_partial(Metrics.rmse,relative=True,join='outer',fill_value='ffill'),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
@@ -50,6 +52,7 @@ def get_node_level_measurements_params(time_granularity):
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "structural_virality", "time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value=0),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value=0,relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value=0)},
             "temporal_vs_batch":"Temporal"
         },
@@ -62,6 +65,7 @@ def get_node_level_measurements_params(time_granularity):
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "size", "time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill", relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
@@ -73,9 +77,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "unique_nodes", "time_granularity": time_granularity},
-            "metrics": {"rmse": Metrics.rmse,
-                        "r2": Metrics.r2},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill",relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch": "Temporal"
         },
@@ -87,9 +90,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_timeseries_of", "attribute": "new_node_ratio", "time_granularity": time_granularity},
-            "metrics": {"rmse": Metrics.rmse,
-                        "r2": Metrics.r2},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value=0),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value=0,relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value=0)},
             "temporal_vs_batch": "Temporal"
         },
@@ -102,6 +104,7 @@ def get_node_level_measurements_params(time_granularity):
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_depth_by", "attribute": "breadth"},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',relative=True),
                        "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Batch"
         },
@@ -114,6 +117,7 @@ def get_node_level_measurements_params(time_granularity):
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_depth_by", "attribute": "new_node_ratio"},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',relative=True),
                        "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Batch"
         },
@@ -126,6 +130,7 @@ def get_node_level_measurements_params(time_granularity):
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_depth_by", "attribute": "unique_nodes"},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',relative=True),
                        "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Batch"
         },
@@ -137,7 +142,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_participation_gini"},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         },
         "cascade_participation_palma": {
@@ -148,7 +154,8 @@ def get_node_level_measurements_params(time_granularity):
             "scenario3":False,          
             "measurement":"get_node_level_measurements",
             "measurement_args":{"single_cascade_measurement": "cascade_participation_palma"},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         }
     }
@@ -216,6 +223,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "measurement":"cascade_collection_distribution_of",
             "measurement_args":{"attribute": "lifetime","community_grouper":"communityID"},
             "metrics":{"rmse": Metrics.rmse,
+                       "nrmse": named_partial(Metrics.rmse, relative=True),
                        "r2": Metrics.r2},
             "temporal_vs_batch":"Temporal"
         },
@@ -228,6 +236,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "measurement":"get_cascade_collection_size_timeseries",
             "measurement_args":{"community_grouper": "communityID", "time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill",relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
@@ -251,6 +260,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "measurement":"community_users_count",
             "measurement_args":{"attribute": "unique_users", "community_grouper": "communityID", "time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill",relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
@@ -263,6 +273,7 @@ def get_community_level_measurements_params(time_granularity="M"):
             "measurement":"community_users_count",
             "measurement_args":{"attribute": "new_user_ratio", "community_grouper": "communityID", "time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value=0),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value=0,relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value=0)},
             "temporal_vs_batch":"Temporal"
         },
@@ -274,7 +285,8 @@ def get_community_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_initialization_gini",
             "measurement_args":{"community_grouper":"communityID"},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_initialization_palma": {
@@ -285,7 +297,8 @@ def get_community_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_initialization_palma",
             "measurement_args":{"community_grouper":"communityID"},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_participation_gini": {
@@ -296,7 +309,8 @@ def get_community_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_participation_gini",
             "measurement_args":{"community_grouper":"communityID"},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         },
         "community_cascade_participation_palma": {
@@ -307,18 +321,8 @@ def get_community_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_participation_palma",
             "measurement_args":{"community_grouper":"communityID"},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
-            "temporal_vs_batch":"Batch"
-        },
-        "community_fraction_nodes_lcc": {
-            "scale":"community",
-            "node_type":"Cascade",
-            "scenario1":False,
-            "scenario2":True,
-            "scenario3":True,
-            "measurement":"fraction_of_nodes_in_lcc",
-            "measurement_args":{"community_grouper":"communityID"},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         }
     }
@@ -396,6 +400,7 @@ def get_population_level_measurements_params(time_granularity="M"):
             "measurement":"get_cascade_collection_size_timeseries",
             "measurement_args":{"time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill"),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',fill_value="ffill",relative=True),
                        "r2": named_partial(Metrics.r2,join='outer',fill_value="ffill")},
             "temporal_vs_batch":"Temporal"
         },
@@ -405,9 +410,10 @@ def get_population_level_measurements_params(time_granularity="M"):
             "scenario1":False,
             "scenario2":True,
             "scenario3":True,
-            "measurement":"get_cascade_collection_lifetime_timeseries",
+            "measurement":"get_cascade_collection_timeline_timeseries",
             "measurement_args":{"time_granularity": time_granularity},
             "metrics":{"rmse": named_partial(Metrics.rmse,join='outer'),
+                       "nrmse": named_partial(Metrics.rmse,join='outer',relative=True),
                        "r2": named_partial(Metrics.r2,join='outer')},
             "temporal_vs_batch":"Temporal"
         },
@@ -419,7 +425,8 @@ def get_population_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_initialization_gini",
             "measurement_args":{ },
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_initialization_palma": {
@@ -430,7 +437,8 @@ def get_population_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_initialization_palma",
             "measurement_args":{ },
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_participation_gini": {
@@ -441,7 +449,8 @@ def get_population_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_participation_gini",
             "measurement_args":{ },
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         },
         "population_cascade_participation_palma": {
@@ -452,18 +461,8 @@ def get_population_level_measurements_params(time_granularity="M"):
             "scenario3":True,
             "measurement":"cascade_collection_participation_palma",
             "measurement_args":{ },
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
-            "temporal_vs_batch":"Batch"
-        },
-        "population_fraction_nodes_lcc": {
-            "scale":"population",
-            "node_type":"Cascade",
-            "scenario1":False,
-            "scenario2":True,
-            "scenario3":True,
-            "measurement":"fraction_of_nodes_in_lcc",
-            "measurement_args":{},
-            "metrics":{"percentage difference": Metrics.absolute_percentage_error},
+            "metrics":{"absolute_percentag_error": Metrics.absolute_percentage_error,
+                       "absolute_difference": Metrics.absolute_difference},
             "temporal_vs_batch":"Batch"
         }
     }

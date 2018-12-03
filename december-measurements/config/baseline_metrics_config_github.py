@@ -33,6 +33,7 @@ user_measurement_params = {
          "metrics": {
              "js_divergence": named_partial(Metrics.js_divergence, discrete=False),
              "rmse": Metrics.rmse,
+             "nrmse": named_partial(Metrics.rmse,relative=True),
              "r2": Metrics.r2}
      },
 
@@ -46,6 +47,7 @@ user_measurement_params = {
          "measurement": "getUserActivityTimeline",
          "measurement_args":{"eventTypes":contribution_events},
          "metrics": {"rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "ks_test": Metrics.ks_test,
                      "dtw": Metrics.dtw}
     
@@ -61,6 +63,7 @@ user_measurement_params = {
          "measurement": "getUserActivityDistribution",
          "measurement_args":{"eventTypes":contribution_events + popularity_events},
          "metrics": {"rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "r2": Metrics.r2,
                      "js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
      },
@@ -73,8 +76,8 @@ user_measurement_params = {
          'scenario2':False,
          'scenario3':True,
          "measurement": "getMostActiveUsers",
-         "measurement_args":{"eventTypes":contribution_events + popularity_events},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+         "measurement_args":{"k":700,"eventTypes":contribution_events + popularity_events},
+         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.993)}
      },
 
      "user_popularity": {
@@ -85,8 +88,8 @@ user_measurement_params = {
          'scenario2':False,
          'scenario3':True,
          "measurement": "getUserPopularity",
-         "measurement_args":{"eventTypes":popularity_events + ['CreateEvent'],"content_field":"content"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+         "measurement_args":{"k":200,"eventTypes":popularity_events + ['CreateEvent'],"content_field":"content"},
+         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.975)}
      },
 
      "user_gini_coef": {
@@ -111,7 +114,8 @@ user_measurement_params = {
          'scenario3':True,
          "measurement": "getPalmaCoef",
          "measurement_args":{"nodeType":"user","eventTypes":contribution_events,"content_field":"content"},
-         "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
+         "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error,
+                     "absolute_difference": Metrics.absolute_difference}
      },
 
      "user_diffusion_delay": {
@@ -164,6 +168,7 @@ content_measurement_params = {
          "measurement": "getContentGrowth",
          "measurement_args":{"eventTypes":contribution_events,"content_field":"content"},
          "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "dtw": Metrics.dtw}
      },
    
@@ -177,6 +182,7 @@ content_measurement_params = {
          "measurement": "getContributions",
          "measurement_args":{"eventTypes":contribution_events,"content_field":"content"},
          "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "dtw": Metrics.dtw}
      },
    
@@ -215,6 +221,7 @@ content_measurement_params = {
          "measurement_args":{"eventTypes":["WatchEvent"],"content_field":"content"},
          "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False),
                      "rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "r2": Metrics.r2}
      },
     
@@ -226,8 +233,8 @@ content_measurement_params = {
          'scenario2':False,
          'scenario3':True,
          "measurement": "getTopKContent",
-         "measurement_args":{"k":5000,"eventTypes":["WatchEvent"],"content_field":"content"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+         "measurement_args":{"k":125,"eventTypes":["WatchEvent"],"content_field":"content"},
+         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.96)}
      },
     
      "content_liveliness_distribution": {
@@ -241,6 +248,7 @@ content_measurement_params = {
          "measurement_args":{"eventTypes":["ForkEvent"],"content_field":"content"},
          "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False),
                      "rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "r2": Metrics.r2}
      },
     
@@ -252,8 +260,8 @@ content_measurement_params = {
          'scenario2':False,
          'scenario3':True,
          "measurement": "getTopKContent",
-         "measurement_args":{"k":5000,"eventTypes":["ForkEvent"],"content_field":"content"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+         "measurement_args":{"k":50,"eventTypes":["ForkEvent"],"content_field":"content"},
+         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.9)}
      },
 
      "content_activity_disparity_gini_fork": {
@@ -378,7 +386,9 @@ content_measurement_params = {
          'scenario3':False,
          "measurement_args":{"eventTypes":contribution_events,"content_field":"content"},
          "measurement":"getEventTypeRatioTimeline",
-         "metrics":{"rmse":Metrics.rmse}
+         "metrics":{"rmse":Metrics.rmse,
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
+                    }
          },
 
       "repo_event_counts_issue": {
@@ -392,6 +402,7 @@ content_measurement_params = {
          "measurement_args":{"eventTypes":["IssuesEvent"],"content_field":"content"},
          "metrics":{"js_divergence":named_partial(Metrics.js_divergence, discrete=False),
                     "rmse":Metrics.rmse,
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
                     "r2": Metrics.r2}
          },
       "repo_event_counts_pull_request": {
@@ -405,6 +416,7 @@ content_measurement_params = {
          "measurement_args":{"eventTypes":["PullRequestEvent"],"content_field":"content"},
          "metrics":{"js_divergence":named_partial(Metrics.js_divergence, discrete=False),
                     "rmse":Metrics.rmse,
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
                     "r2": Metrics.r2}
          },
       "repo_event_counts_push": {
@@ -418,6 +430,7 @@ content_measurement_params = {
          "measurement_args":{"eventTypes":["PushEvent"],"content_field":"content"},
          "metrics":{"js_divergence":named_partial(Metrics.js_divergence, discrete=False),
                     "rmse":Metrics.rmse,
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
                     "r2": Metrics.r2}
          },
       "repo_user_continue_prop":{
@@ -429,7 +442,9 @@ content_measurement_params = {
          "node_type":"content",
          "measurement":"propUserContinue",
          "measurement_args":{"eventTypes":contribution_events,"content_field":"content"},
-         "metrics":{"rmse":Metrics.rmse}
+         "metrics":{"rmse":Metrics.rmse,
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
+                    }
          }
 }
 
@@ -505,6 +520,7 @@ community_measurement_params = {
         "measurement":"getNumUserActions",
         "measurement_args":{"eventTypes":contribution_events,"community_field":"community","unit":"D"},
         "metrics":{"rmse": named_partial(Metrics.rmse, join="outer"),
+                   "nrmse": named_partial(Metrics.rmse,relative=True),
                    "dtw": Metrics.dtw,
                    "js_divergence": named_partial(Metrics.js_divergence,discrete=False)
                    }
@@ -541,6 +557,7 @@ community_measurement_params = {
         'scenario3':True,
         "measurement":"propIssueEvent",
         "metrics":{ "rmse": named_partial(Metrics.rmse,join='outer'),
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
                     "js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
         },
     "community_user_account_ages":{
@@ -618,4 +635,4 @@ github_measurement_params = {}
 github_measurement_params.update(user_measurement_params)
 github_measurement_params.update(content_measurement_params)
 github_measurement_params.update(community_measurement_params)
-#measurement_params.update(te_measurement_params)
+#github_measurement_params.update(te_measurement_params)

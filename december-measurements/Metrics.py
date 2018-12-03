@@ -6,6 +6,7 @@ import fastdtw as fdtw
 import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
+from scipy.stats import iqr
 
 
 def check_data_types(ground_truth, simulation):
@@ -311,16 +312,27 @@ def rbo_score(ground_truth, simulation, p=0.95):
     if simulation is None:
         return None
 
-    try:
+    #try:
+    #    ground_truth = ground_truth.index.tolist()
+    #    simulation = simulation.index.tolist()
+    #except:
+    #    ''
+
+    if len(ground_truth.columns) == 2:
+
+        entity = [c for c in ground_truth.columns if c != 'value'][0]
+
+        ground_truth = ground_truth[entity].tolist()
+        simulation = simulation[entity].tolist()
+    else:
         ground_truth = ground_truth.index.tolist()
         simulation = simulation.index.tolist()
-    except:
-        ''
 
     sl, ll = sorted([(len(ground_truth), ground_truth), (len(simulation), simulation)])
     s, S = sl
     l, L = ll
     if s == 0: return 0
+
 
     # Calculate the overlaps at ranks 1 through s
     # (the shorter of the two lists)
@@ -343,7 +355,6 @@ def rbo_score(ground_truth, simulation, p=0.95):
 
     return rbo_score
 
-
 # Weight given to the top d ranks for a given p
 def rbo_weight(d, p):
     sum1 = 0.0
@@ -355,7 +366,7 @@ def rbo_weight(d, p):
     return wt
 
 
-def rmse(ground_truth, simulation, join='inner', fill_value=0):
+def rmse(ground_truth, simulation, join='inner', fill_value=0, relative=False):
     """
     Root mean squared error
 
@@ -377,9 +388,14 @@ def rmse(ground_truth, simulation, join='inner', fill_value=0):
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
 
     if len(df.index) > 0:
-        return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean())
+        if not relative:
+            return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean())
+        else:
+            return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean()) / iqr(df['value_gt'].values)
     else:
         return None
+
+
 
 
 def r2(ground_truth, simulation, join='inner', fill_value=0):
@@ -409,9 +425,9 @@ def r2(ground_truth, simulation, join='inner', fill_value=0):
     	return np.sqrt(((np.asarray(ground_truth) - np.asarray(simulation)) ** 2).mean())
 
     ground_truth = ground_truth[np.isfinite(ground_truth.value)]
-    simulation = simulation[np.isfinite(simulation.value)]
+    simulation = simulation[np.isfinite(simulation.value)] 
 
-    df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value)
+    df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value).fillna(0)
 
     if df.empty:
         return None
@@ -471,6 +487,7 @@ def join_dfs(ground_truth,simulation,join='inner',fill_value=0):
                             on = [c for c in ground_truth.columns if c != 'value'],
                             suffixes = ('_gt','_sim'),
                             how=join)
+    df = df.sort_values([c for c in ground_truth.columns if c != 'value'])
 
     try:
         float(fill_value)

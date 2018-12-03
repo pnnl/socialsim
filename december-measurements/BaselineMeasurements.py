@@ -75,7 +75,7 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
         print('splitting optional columns...')
 
         # store action and merged columns in a seperate data frame that is not used for most measurements
-        if platform == 'github' and len(self.main_df.columns) == 6:
+        if platform == 'github' and len(self.main_df.columns) == 6 and 'action' in self.main_df.columns:
             self.main_df_opt = self.main_df.copy()[['action', 'merged']]
             self.main_df = self.main_df.drop(['action', 'merged'], axis=1)
         else:
@@ -84,13 +84,16 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
         # For content centric
         print('getting selected content IDs...')
 
-        if self.platform == 'reddit':
-            self.selectedContent = self.main_df[self.main_df.root.isin(content_node_ids)]
-        elif self.platform == 'twitter':
-            self.selectedContent = self.main_df[self.main_df.parent.isin(content_node_ids)]
+        if content_node_ids != ['all']:
+            if self.platform == 'reddit':
+                self.selectedContent = self.main_df[self.main_df.root.isin(content_node_ids)]
+            elif self.platform == 'twitter':
+                self.selectedContent = self.main_df[self.main_df.root.isin(content_node_ids)]
+            else:
+                self.selectedContent = self.main_df[self.main_df.content.isin(content_node_ids)]
         else:
-            self.selectedContent = self.main_df[self.main_df.content.isin(content_node_ids)]
-
+            self.selectedContent = self.main_df
+                
         # For userCentric
         self.selectedUsers = self.main_df[self.main_df.user.isin(user_node_ids)]
 
@@ -129,8 +132,6 @@ class BaselineMeasurements(UserCentricMeasurements, ContentCentricMeasurements, 
             self.previous_event_counts = pd.read_csv(previousActionsFile)
         except:
             self.previous_event_counts = None
-
-        print('previous event counts', self.previous_event_counts)
 
         # For TE
         if use_java:

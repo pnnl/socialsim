@@ -220,7 +220,7 @@ class UserCentricMeasurements(object):
         df['value'] = 1
         df = df.groupby('user')
         measurement = df.value.sum().sort_values(ascending=False).head(k)
-        measurement = pd.DataFrame(measurement).sort_values('value',ascending=False)
+        measurement = pd.DataFrame(measurement).sort_values('value',ascending=False).reset_index()
         return measurement
 
     '''
@@ -259,9 +259,11 @@ class UserCentricMeasurements(object):
         if not self.main_df_opt is None and 'PullRequestEvent' in self.main_df.event.values:
 
             df = self.main_df_opt.copy()
-
-            idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False]))
+  
+            idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False,"True","False"]))
             df = df[idx]
+
+            df['merged'] = df['merged'].map({"False":False,"True":True})
             users_repos = self.main_df[idx]
 
             if len(df) == 0:

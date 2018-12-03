@@ -277,6 +277,10 @@ class ContentCentricMeasurements(object):
         if eventTypes is not None:
             df = df[df.event.isin(eventTypes)]
 
+        if len(df) == 0:
+            return None
+
+
         #count events for given node type
         if nodeType != 'user':
             df = df[[nodeType, 'user']].groupby(nodeType).count()
@@ -420,10 +424,12 @@ class ContentCentricMeasurements(object):
 
             df = self.main_df_opt.copy()
 
-            idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False]))
+            idx = (self.main_df.event.isin(eventTypes)) & (df.merged.isin([True,False,"True","False"]))
             
             df = df[idx]
             users_repos = self.main_df[idx]
+
+            df['merged'] = df['merged'].map({"True":True,"False":False})
 
             if len(df) == 0:
                 return None

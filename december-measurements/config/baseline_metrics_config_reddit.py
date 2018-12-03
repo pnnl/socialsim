@@ -29,6 +29,7 @@ user_measurement_params = {
          "metrics": {
              "js_divergence": named_partial(Metrics.js_divergence, discrete=False),
              "rmse": Metrics.rmse,
+             "nrmse": named_partial(Metrics.rmse,relative=True),
              "r2": Metrics.r2}
      },
 
@@ -42,6 +43,7 @@ user_measurement_params = {
          "measurement": "getUserActivityTimeline",
          "measurement_args":{"eventTypes":reddit_events},
          "metrics": {"rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "ks_test": Metrics.ks_test,
                      "dtw": Metrics.dtw}
 
@@ -57,6 +59,7 @@ user_measurement_params = {
          "measurement": "getUserActivityDistribution",
          "measurement_args":{"eventTypes":reddit_events},
          "metrics": {"rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "r2": Metrics.r2,
                      "js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
      },
@@ -69,8 +72,8 @@ user_measurement_params = {
          "scenario2":True,
          "scenario3":True,
          "measurement": "getMostActiveUsers",
-         "measurement_args":{"eventTypes":reddit_events},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+         "measurement_args":{"k":1500,"eventTypes":reddit_events},
+         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.9965)}
      },
 
      "user_popularity": {
@@ -81,8 +84,8 @@ user_measurement_params = {
          "scenario2":True,
          "scenario3":True,
          "measurement": "getUserPopularity",
-         "measurement_args":{"eventTypes":reddit_events,"content_field":"root"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+         "measurement_args":{"k":1500,"eventTypes":reddit_events,"content_field":"root"},
+         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.9965)}
      },
 
      "user_gini_coef": {
@@ -107,75 +110,76 @@ user_measurement_params = {
          "scenario3":True,
          "measurement": "getPalmaCoef",
          "measurement_args":{"nodeType":"user","eventTypes":reddit_events},
-         "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
+         "metrics": {"absolute_difference": Metrics.absolute_difference,
+                     "absolute_percentage_error": Metrics.absolute_percentage_error}
      },
 
-     "user_diffusion_delay": {
-         "question": '27',
-         "scale": "population",
-         "node_type":"user",
-         "scenario1":True,
-         "scenario2":True,
-         "scenario3":True,
-         "measurement": "getUserDiffusionDelay",
-         "measurement_args":{"eventTypes":reddit_events},
-         "metrics": {"ks_test": Metrics.ks_test}
-     }
+     #"user_diffusion_delay": {
+     #    "question": '27',
+     #    "scale": "population",
+     #    "node_type":"user",
+     #    "scenario1":True,
+     #    "scenario2":True,
+     #    "scenario3":True,
+     #    "measurement": "getUserDiffusionDelay",
+     #    "measurement_args":{"eventTypes":reddit_events},
+     #    "metrics": {"ks_test": Metrics.ks_test}
+     #}
 
 }
 
 content_measurement_params = {
     ##Content-centric measurements
-     "content_diffusion_delay": {
-         "question": 1,
-         "scale": "node",
-         "node_type":"content",
-         "scenario1":False,
-         "scenario2":True,
-         "scenario3":False,
-         "measurement": "getContentDiffusionDelay",
-         "measurement_args":{"eventTypes":["comment"],"time_bin":"h"},
-         "metrics": {"ks_test": Metrics.ks_test,
-                     "js_divergence": named_partial(Metrics.js_divergence, discrete=False)},
-     },
+#     "content_diffusion_delay": {
+#         "question": 1,
+#         "scale": "node",
+#         "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#         "measurement": "getContentDiffusionDelay",
+#         "measurement_args":{"eventTypes":["comment"],"time_bin":"h"},
+#         "metrics": {"ks_test": Metrics.ks_test,
+#                     "js_divergence": named_partial(Metrics.js_divergence, discrete=False)},
+#     },
 
-     "content_growth": {
-         "question": 2,
-         "scale": "node",
-         "node_type":"content",
-         "scenario1":False,
-         "scenario2":True,
-         "scenario3":False,
-         "measurement": "getContentGrowth",
-         "measurement_args":{"eventTypes":reddit_events,"time_bin":"h"},
-         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
-                     "dtw": Metrics.dtw}
-     },
+#     "content_growth": {
+#         "question": 2,
+#         "scale": "node",
+#         "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#         "measurement": "getContentGrowth",
+#         "measurement_args":{"eventTypes":reddit_events,"time_bin":"h"},
+#         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
+#                     "dtw": Metrics.dtw}
+#     },
 
-     "content_contributors": {
-         "question": 4,
-         "scale": "node",
-         "node_type":"content",
-         "scenario1":False,
-         "scenario2":True,
-         "scenario3":False,
-         "measurement": "getContributions",
-         "measurement_args":{"eventTypes":reddit_events},
-         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
-                     "dtw": Metrics.dtw}
-     },
+#     "content_contributors": {
+#         "question": 4,
+#         "scale": "node",
+#         "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#         "measurement": "getContributions",
+#         "measurement_args":{"eventTypes":reddit_events},
+#         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
+#                     "dtw": Metrics.dtw}
+#     },
 
-    "content_event_distribution_dayofweek": {
-        "question": 5,
-        "scale": "node",
-        "node_type":"content",
-        "scenario1":False,
-        "scenario2":True,
-        "scenario3":False,
-        "measurement": "getDistributionOfEvents",
-        "measurement_args":{"weekday":True},
-        "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
-    },
+#    "content_event_distribution_dayofweek": {
+#        "question": 5,
+#        "scale": "node",
+#        "node_type":"content",
+#        "scenario1":False,
+#        "scenario2":True,
+#        "scenario3":False,
+#        "measurement": "getDistributionOfEvents",
+#        "measurement_args":{"weekday":True},
+#        "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
+#    },
 
      "content_liveliness_distribution": {
          "question": 13,
@@ -186,22 +190,20 @@ content_measurement_params = {
          "scenario3":True,
          "measurement": "getDistributionOfEventsByContent",
          "measurement_args":{"eventTypes":["comment"],"content_field":"root"},
-         "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False),
-                     "rmse": Metrics.rmse,
-                     "r2": Metrics.r2}
+         "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False)}
      },
 
-     "content_liveliness_topk": {
-         "question": 13,
-         "scale": "population",
-         "node_type":"content",
-         "scenario1":True,
-         "scenario2":True,
-         "scenario3":True,
-         "measurement": "getTopKContent",
-         "measurement_args":{"k":5000,"eventTypes":["comment"],"content_field":"root"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
-     },
+#     "content_liveliness_topk": {
+#         "question": 13,
+#         "scale": "population",
+#         "node_type":"content",
+#         "scenario1":True,
+#         "scenario2":True,
+#         "scenario3":True,
+#         "measurement": "getTopKContent",
+#         "measurement_args":{"k":1500,"eventTypes":["comment"],"content_field":"root"},
+#         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.9965)}
+#     },
 
       "content_activity_disparity_gini_comment": {
           "question": 14,
@@ -226,7 +228,8 @@ content_measurement_params = {
           "scenario3":True,
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["comment"]},
-          "metrics": {"absolute_percentage_error": Metrics.absolute_percentage_error}
+          "metrics": {"absolute_difference": Metrics.absolute_difference,
+                     "absolute_percentage_error": Metrics.absolute_percentage_error}
       },
 
       "subreddit_user_continue_prop":{
@@ -237,8 +240,10 @@ content_measurement_params = {
          "scenario2":True,
          "scenario3":True,
          "measurement":"propUserContinue",
-         "measurement_args":{"eventTypes":["comment"],"content_field":"subreddit"},
-         "metrics":{"rmse":Metrics.rmse}
+         "measurement_args":{"eventTypes":["comment","post"],"content_field":"subreddit"},
+         "metrics":{"rmse":Metrics.rmse,
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
+                    }
          },
      "subreddit_post_to_comment":{
          "question":'31',
@@ -249,9 +254,11 @@ content_measurement_params = {
          "scenario3":True,
          "measurement_args":{"eventTypes":reddit_events,"event1":"post","event2":"comment","content_field":"subreddit"},
          "measurement":"getEventTypeRatioTimeline",
-         "metrics":{"rmse":Metrics.rmse}
+         "metrics":{"rmse":Metrics.rmse,
+                    "nrmse": named_partial(Metrics.rmse,relative=True),
+                    }
          }
-}
+     }
 
 community_measurement_params = {
     #Community-level measurements
@@ -277,19 +284,8 @@ community_measurement_params = {
         "scenario3":True,
         "measurement":"getCommunityPalma",
         "measurement_args":{"eventTypes":reddit_events,"community_field":"subreddit","content_field":"root"},
-        "metrics":{"absolute_percentage_error": Metrics.absolute_percentage_error}
-        },
-
-    "community_geo_locations":{
-        "question":'21',
-        "scale":"community",
-        "node_type":"user",
-        "scenario1":True,
-        "scenario2":True,
-        "scenario3":True,
-        "measurement":"userGeoLocation",
-        "measurement_args":{"eventTypes":reddit_events,"community_field":"subreddit"},
-        "metrics":{"js_divergence":named_partial(Metrics.js_divergence, discrete=False)}
+        "metrics":{"absolute_difference": Metrics.absolute_difference,
+                   "absolute_percentage_error": Metrics.absolute_percentage_error}
         },
 
     "community_event_proportions":{
@@ -325,6 +321,7 @@ community_measurement_params = {
         "measurement":"getNumUserActions",
         "measurement_args":{"eventTypes":reddit_events,"unit":'D',"community_field":"subreddit"},
         "metrics":{"rmse": named_partial(Metrics.rmse, join="outer"),
+                   "nrmse": named_partial(Metrics.rmse,relative=True),
                    "dtw": Metrics.dtw,
                    "js_divergence": named_partial(Metrics.js_divergence,discrete=False)
                    }
@@ -350,17 +347,6 @@ community_measurement_params = {
         "scenario2":True,
         "scenario3":True,
         "measurement":"getUserBurstByCommunity",
-        "metrics":{'ks_test':Metrics.ks_test}
-        },
-
-    "community_user_account_ages":{
-        "question":"10",
-        "scale":"community",
-        "node_type":"user",
-        "scenario1":True,
-        "scenario2":True,
-        "scenario3":True,
-        "measurement":"ageOfAccounts",
         "metrics":{'ks_test':Metrics.ks_test}
         }
     }

@@ -52,11 +52,10 @@ class CommunityCentricMeasurements():
         elif community_col != '':
             self.loadMetaData() 
             self.loadCommunities(self.community_dict_file)
-     
        
             dfs = []
      
-            content_community_types = ['topic',"languages"]
+            content_community_types = ['topic',"language"]
             user_community_types = ['city','country','company',"locations"]
         
             #content-focused communities
@@ -74,7 +73,7 @@ class CommunityCentricMeasurements():
                         d = self.main_df[self.main_df['user'].isin(self.comDic[community][key])]
                         d[community_col] = key
                         dfs.append(d)     
-
+           
             return pd.concat(dfs)
                     
 
@@ -113,6 +112,9 @@ class CommunityCentricMeasurements():
 
         df = self.communityDF.copy()
 
+        if len(df) == 0:
+            return None
+
         if eventTypes != None:
             df = df[df['event'].isin(eventTypes)]
 
@@ -141,6 +143,9 @@ class CommunityCentricMeasurements():
     def contributingUsers(self,eventTypes=None,community_field="subreddit"):
 
         df = self.communityDF.copy()
+
+        if len(df) == 0:
+            return None
 
         if not eventTypes is None:
             df = df[df.event.isin(eventTypes)]
@@ -176,6 +181,9 @@ class CommunityCentricMeasurements():
         
         df = self.communityDF.copy()
 
+        if len(df) == 0:
+            return None
+
         if eventTypes != None:
             df = df[df.event.isin(eventTypes)]
         
@@ -208,8 +216,14 @@ class CommunityCentricMeasurements():
 
         df = self.communityDF.copy()
 
+        if len(df) == 0:
+            return None
+
         if eventTypes != None:
             df = df[df['event'].isin(eventTypes)]
+
+        if len(df) == 0:
+            return None
 
         def burstiness(grp):
 
@@ -246,6 +260,9 @@ class CommunityCentricMeasurements():
     def propIssueEvent(self,unit='D'):
 
         df = self.communityDF.copy()
+
+        if len(df) == 0:
+            return None
 
         if self.main_df_opt is not None:            
 
@@ -297,6 +314,9 @@ class CommunityCentricMeasurements():
         
         df = self.communityDF.copy()
         
+        if len(df) == 0:
+            return None
+
         if self.useUserMetaData:
 
             if eventTypes != None:
@@ -335,6 +355,9 @@ class CommunityCentricMeasurements():
         if not eventTypes is None:
             df = df[df.event.isin(eventTypes)]
 
+        if len(df) == 0:
+            return None
+
         if self.useUserMetaData:
 
             #merge events data with user location metadata
@@ -345,15 +368,14 @@ class CommunityCentricMeasurements():
             community_totals = merge.groupby(community_field)['value'].sum().reset_index()
             community_totals.columns = ['community','total']
             merge = merge.merge(community_totals,on='community',how='left')
-            merge['proportion'] /= merge['total']
-
+            merge['value'] = merge['value']/merge['total']
 
             #set rare locations to "other"
             thresh = 0.007
-            merge['country'][merge['proportion'] < thresh] = 'other'
+            merge['country'][merge['value'] < thresh] = 'other'
             
             #sum over other countries
-            grouped = merge.groupby('country').sum().reset_index()
+            grouped = merge.groupby([community_field,'country']).sum().reset_index()
 
             measurement = self.getCommunityMeasurementDict(grouped)
 
@@ -377,6 +399,9 @@ class CommunityCentricMeasurements():
 
         if eventTypes != None:
             df = df[df.event.isin(eventTypes)]
+
+        if len(df) == 0:
+            return None
 
         #only calculate burstiness for users which have sufficient activity
         users = df.groupby(['user',community_field])
@@ -425,11 +450,14 @@ class CommunityCentricMeasurements():
     '''
     def getCommunityGini(self,communities=True,eventTypes=None,community_field="subreddit",content_field="root"):
 
-        ginis = self.communityDF.groupby(community_field).apply(lambda x: self.getGiniCoefHelper(x,content_field))
+        if len(self.communityDF) > 0:
+            ginis = self.communityDF.groupby(community_field).apply(lambda x: self.getGiniCoefHelper(x,content_field))
         
-        measurement = self.getCommunityMeasurementDict(ginis)
+            measurement = self.getCommunityMeasurementDict(ginis)
 
-        return measurement
+            return measurement
+        else:
+            return None
 
     '''
     Wrapper function calculate the Palma coefficient for the data frame.
@@ -440,12 +468,16 @@ class CommunityCentricMeasurements():
     '''
     def getCommunityPalma(self,communities=True,eventTypes=None,community_field="subreddit",content_field="root"):
 
-        palmas = self.communityDF.groupby(community_field).apply(lambda x: self.getPalmaCoefHelper(x,content_field))
+        if len(self.communityDF) > 0:
 
-        measurement = self.getCommunityMeasurementDict(palmas)
+            palmas = self.communityDF.groupby(community_field).apply(lambda x: self.getPalmaCoefHelper(x,content_field))
+            
+            measurement = self.getCommunityMeasurementDict(palmas)
 
-        return measurement
+            return measurement
 
+        else:
+            return None
 
 
     

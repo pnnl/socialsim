@@ -32,6 +32,7 @@ user_measurement_params = {
          "metrics": {
              "js_divergence": named_partial(Metrics.js_divergence, discrete=False),
              "rmse": Metrics.rmse,
+             "nrmse": named_partial(Metrics.rmse,relative=True),
              "r2": Metrics.r2}
      },
 
@@ -45,6 +46,7 @@ user_measurement_params = {
          "measurement": "getUserActivityTimeline",
          "measurement_args":{"eventTypes":twitter_events},
          "metrics": {"rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "ks_test": Metrics.ks_test,
                      "dtw": Metrics.dtw}
     
@@ -60,6 +62,7 @@ user_measurement_params = {
          "measurement": "getUserActivityDistribution",
          "measurement_args":{"eventTypes":twitter_events},
          "metrics": {"rmse": Metrics.rmse,
+                     "nrmse": named_partial(Metrics.rmse,relative=True),
                      "r2": Metrics.r2,
                      "js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
      },
@@ -84,8 +87,8 @@ user_measurement_params = {
          'scenario2':True,
          'scenario3':True,
          "measurement": "getUserPopularity",
-         "measurement_args":{"eventTypes":twitter_events,"content_field":"root"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+         "measurement_args":{"k":4000,"eventTypes":twitter_events,"content_field":"root"},
+         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.9987)}
      },
 
      "user_gini_coef": {
@@ -110,76 +113,76 @@ user_measurement_params = {
          'scenario3':True,
          "measurement": "getPalmaCoef",
          "measurement_args":{"nodeType":"user","eventTypes":twitter_events},
-         "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
-
+         "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error,
+                     "absolute_difference":Metrics.absolute_difference}
      },
 
-     "user_diffusion_delay": {
-         "question": '27',
-         "scale": "population",
-         "node_type":"user",
-         'scenario1':True,
-         'scenario2':True,
-         'scenario3':True,
-         "measurement": "getUserDiffusionDelay",
-         "measurement_args":{"eventTypes":twitter_events},
-         "metrics": {"ks_test": Metrics.ks_test}
-     }
+     #"user_diffusion_delay": {
+     #    "question": '27',
+     #    "scale": "population",
+     #    "node_type":"user",
+     #    'scenario1':True,
+     #    'scenario2':True,
+     #    'scenario3':True,
+     #    "measurement": "getUserDiffusionDelay",
+     #    "measurement_args":{"eventTypes":twitter_events},
+     #    "metrics": {"ks_test": Metrics.ks_test}
+     #}
 
 }
 
 content_measurement_params = {
     ##Content-centric measurements
-     "content_diffusion_delay": {
-         "question": 1,
-         "scale": "node",
-         "node_type":"content",
-         "scenario1":False,
-         "scenario2":True,
-         "scenario3":False,
-         "measurement": "getContentDiffusionDelay",
-         "measurement_args":{"eventTypes":["reply",'retweet','quote'],"time_bin":"h","content_field":"root"},
-         "metrics": {"ks_test": Metrics.ks_test,
-                     "js_divergence": named_partial(Metrics.js_divergence, discrete=False)},
-     },
+#     "content_diffusion_delay": {
+#         "question": 1,
+#         "scale": "node",
+#         "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#         "measurement": "getContentDiffusionDelay",
+#         "measurement_args":{"eventTypes":["reply",'retweet','quote'],"time_bin":"h","content_field":"root"},
+#         "metrics": {"ks_test": Metrics.ks_test,
+#                     "js_divergence": named_partial(Metrics.js_divergence, discrete=False)},
+#     },
    
-     "content_growth": {
-         "question": 2,
-         "scale": "node",
-         "node_type":"content",
-         "scenario1":False,
-         "scenario2":True,
-         "scenario3":False,
-         "measurement": "getContentGrowth",
-         "measurement_args":{"eventTypes":twitter_events,"time_bin":"d","content_field":"root"},
-         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
-                     "dtw": Metrics.dtw}
-     },
+#     "content_growth": {
+#         "question": 2,
+#         "scale": "node",
+#         "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#         "measurement": "getContentGrowth",
+#         "measurement_args":{"eventTypes":twitter_events,"time_bin":"d","content_field":"root"},
+#         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
+#                     "dtw": Metrics.dtw}
+#     },
    
-     "content_contributors": {
-         "question": 4,
-         "scale": "node",
-         "node_type":"content",
-         "scenario1":False,
-         "scenario2":True,
-         "scenario3":False,
-         "measurement": "getContributions",
-         "measurement_args":{"eventTypes":twitter_events,"content_field":"root"},
-         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
-                     "dtw": Metrics.dtw}
-     },
+#     "content_contributors": {
+#         "question": 4,
+#         "scale": "node",
+#         "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#         "measurement": "getContributions",
+#         "measurement_args":{"eventTypes":twitter_events,"content_field":"root"},
+#         "metrics": {"rmse": named_partial(Metrics.rmse, join="outer"),
+#                     "dtw": Metrics.dtw}
+#     },
       
-    "content_event_distribution_dayofweek": {
-        "question": 5,
-        "scale": "node",
-        "node_type":"content",
-         "scenario1":False,
-         "scenario2":True,
-         "scenario3":False,
-        "measurement": "getDistributionOfEvents",
-        "measurement_args":{"weekday":True,"content_field":"root"},
-        "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
-    },
+#    "content_event_distribution_dayofweek": {
+#        "question": 5,
+#        "scale": "node",
+#        "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#        "measurement": "getDistributionOfEvents",
+#        "measurement_args":{"weekday":True,"content_field":"root"},
+#        "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=True)}
+#    },
     
      "content_liveliness_distribution": {
          "question": 13,
@@ -190,48 +193,44 @@ content_measurement_params = {
          "scenario3":True,
          "measurement": "getDistributionOfEventsByContent",
          "measurement_args":{"eventTypes":["reply"],"content_field":"root"},
-         "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False),
-                     "rmse": Metrics.rmse,
-                     "r2": Metrics.r2}
+         "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False)}
      },
     
-     "content_liveliness_topk": {
-         "question": 13,
-         "scale": "population",
-         "node_type":"content",
-         "scenario1":True,
-         "scenario2":True,
-         "scenario3":True,
-         "measurement": "getTopKContent",
-         "measurement_args":{"k":5000,"eventTypes":["reply"],"content_field":"root"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
-     },
+#     "content_liveliness_topk": {
+#         "question": 13,
+#         "scale": "population",
+#         "node_type":"content",
+#         "scenario1":False,
+#         "scenario2":True,
+#         "scenario3":False,
+#         "measurement": "getTopKContent",
+##         "measurement_args":{"k":50,"eventTypes":["reply"],"content_field":"root"},
+#         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.9)}
+#     },
 
      "content_popularity_distribution": {
          "question": 13,
          "scale": "population",
          "node_type":"content",
-         "scenario1":True,
+         "scenario1":False,
          "scenario2":True,
-         "scenario3":True,
+         "scenario3":False,
          "measurement": "getDistributionOfEventsByContent",
          "measurement_args":{"eventTypes":["retweet"],"content_field":"root"},
-         "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False),
-                     "rmse": Metrics.rmse,
-                     "r2": Metrics.r2}
+         "metrics": {"js_divergence": named_partial(Metrics.js_divergence, discrete=False)}
      },
     
-     "content_popularity_topk": {
-         "question": 13,
-         "scale": "population",
-         "node_type":"content",
-         "scenario1":True,
-         "scenario2":True,
-         "scenario3":True,
-         "measurement": "getTopKContent",
-         "measurement_args":{"k":5000,"eventTypes":["retweet"],"content_field":"root"},
-         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
-     },
+#     "content_popularity_topk": {
+#         "question": 13,
+#         "scale": "population",
+#         "node_type":"content",
+#         "scenario1":True,
+#         "scenario2":True,
+#         "scenario3":True,
+#         "measurement": "getTopKContent",
+#         "measurement_args":{"k":5000,"eventTypes":["retweet"],"content_field":"root"},
+#         "metrics": {"rbo": named_partial(Metrics.rbo_score, p=0.999)}
+#     },
 
       "content_activity_disparity_gini_retweet": {
           "question": 14,
@@ -255,7 +254,8 @@ content_measurement_params = {
          "scenario3":True,
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["retweet"],"nodeType":"root"},
-          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
+          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error,
+                     "absolute_difference":Metrics.absolute_difference}
       },
       "content_activity_disparity_gini_quote": {
           "question": 14,
@@ -279,7 +279,8 @@ content_measurement_params = {
           "scenario3":True,
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["quote"],"nodeType":"root"},
-          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
+          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error,
+                      "absolute_difference":Metrics.absolute_difference}
       },
       "content_activity_disparity_gini_reply": {
           "question": 14,
@@ -303,7 +304,8 @@ content_measurement_params = {
           "scenario3":True,
           "measurement": "getPalmaCoef",
           "measurement_args":{"eventTypes":["reply"],"nodeType":"root"},
-          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error}
+          "metrics": {"absolute_percentage_error":Metrics.absolute_percentage_error,
+                      "absolute_difference":Metrics.absolute_difference}
       }
 
 
