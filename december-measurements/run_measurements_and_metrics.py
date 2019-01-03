@@ -15,10 +15,25 @@ import sys
 
 sys.path.append('config')
 
-from baseline_metrics_config_reddit  import *
-from baseline_metrics_config_twitter import *
-from baseline_metrics_config_github  import *
+from baseline_metrics_config_twitter_cve_s2 import *
+from baseline_metrics_config_twitter_cve_s1 import *
+from baseline_metrics_config_twitter_crypto_s1 import *
+from baseline_metrics_config_twitter_cyber_s1 import *
+
+from baseline_metrics_config_reddit_crypto_s2 import *
+from baseline_metrics_config_reddit_cve_s2 import *
+from baseline_metrics_config_reddit_cyber_s2 import *
+from baseline_metrics_config_reddit_crypto_s1 import *
+from baseline_metrics_config_reddit_cve_s1 import *
+from baseline_metrics_config_reddit_cyber_s1 import *
+
+from baseline_metrics_config_github_cve_s1  import *
+from baseline_metrics_config_github_crypto_s1  import *
+from baseline_metrics_config_github_cyber_s1  import *
+
 from cascade_metrics_config          import *
+from cascade_metrics_config_twitter  import *
+
 from network_metrics_config          import *
 
 sys.path.append('plotting')
@@ -125,9 +140,9 @@ def run_metrics(ground_truth, simulation, measurement_name, measurement_params,
                                          measurement_params, plot_flag=False,
                                          simulation=True)
 
-    print('measurements')
-    print(measurement_on_gt)
-    print(measurement_on_sim)
+    #print('measurements')
+    #print(measurement_on_gt)
+    #print(measurement_on_sim)
 
 
     if plot_flag:
@@ -478,7 +493,6 @@ def network_examples(platform):
     Will run on Github, Twitter, and Reddit
     """
     ground_truth = load_data(platform + '_data_sample.json',full_submission=True)
-    
     simulation = ground_truth.copy()
 
     measurement_class = {'github': GithubNetworkMeasurements,
@@ -530,6 +544,7 @@ def cascade_examples(platform):
     ground_truth = load_data(platform + '_data_sample.json',full_submission=True)
     simulation = ground_truth.copy()
 
+
     # instantiate Measurement objects for both the ground truth and simulation data
     # CascadeCollectionMeasurements now implements all three measurement scales - node, community, and population
     # so the SingleCascadeMeasurements is NOT NEEDED any more.
@@ -537,38 +552,37 @@ def cascade_examples(platform):
     sim_measurements = CascadeCollectionMeasurements(simulation)
 
     # run individual measurement
-    meas = run_measurement(gt_measurements, 'cascade_uniq_users_by_depth',
+    meas = run_measurement(gt_measurements, 'population_cascade_lifetime_timeseries',
                            cascade_measurement_params)
     print(meas)
 
     # run individual metric
     gt_measurement, sim_measurement, metric = run_metrics(gt_measurements,
                                                           sim_measurements,
-                                                          'cascade_uniq_users_by_depth',
+                                                          'community_cascade_initialization_gini',
                                                           cascade_measurement_params)
-
-    print('metric')
-    pprint.pprint(metric)
 
     # run all assigned measurements
     meas = run_all_measurements(gt_measurements, cascade_measurement_params,
-                                output_dir='measurements_output/'+platform+'/')
+                                output_dir='measurements_output/'+platform+'/',
+                                plot_flag=False,
+                                show=False,
+                                plot_dir='plots/')
 
     # run all assigned metrics
     metrics = run_all_metrics(gt_measurements,sim_measurements,cascade_measurement_params)
     pprint.pprint(metrics)
-
+    
 def baseline_examples(platform='github'):
     """
     Runs examples for baseline measurements.
 
     Will run on Github, Twitter, and Reddit.
     """
-
     ground_truth = load_data(platform + '_data_sample.json',full_submission=True)
-
     simulation = ground_truth.copy()
 
+    
     configs = {'github': github_measurement_params,
                'twitter': twitter_measurement_params,
                'reddit': reddit_measurement_params}
@@ -576,6 +590,7 @@ def baseline_examples(platform='github'):
     # specify node IDs for node-level measurements here
     content_ids = []
     user_ids = []
+
 
     # instantiate Measurement objects for both the ground truth and simulation data
     gt_measurements = BaselineMeasurements(ground_truth, platform=platform, content_node_ids=content_ids,
@@ -585,8 +600,8 @@ def baseline_examples(platform='github'):
 
     # run individual measurement
     # the plots will be displayed to screen
-    meas = run_measurement(sim_measurements,
-                           'user_unique_content',
+    meas = run_measurement(gt_measurements,
+                           'community_palma',
                            configs[platform],
                            show=True,
                            plot_dir='',
@@ -596,10 +611,9 @@ def baseline_examples(platform='github'):
     # the plots will be displayed to screen
     gt_measurement, sim_measurement, metric = run_metrics(gt_measurements,
                                                           sim_measurements,
-                                                          'user_unique_content',
+                                                          'user_activity_distribution',
                                                           configs[platform],
-                                                          show=False,
-                                                          plot_dir='',
+                                                          show=True,
                                                           plot_flag=True)
     pprint.pprint(metric)
 
@@ -733,7 +747,7 @@ def baseline_timing(platform):
 
     clock.log('-'*40+'\n\n')
 
-def run_challenge_measurements(fn,full_submission=True,output_dir=None,platform='github'):
+def run_challenge_measurements(fn,full_submission=True,output_dir=None,platform='github',domain='cve',scenario=1):
 
     """
     Run all measurements for the December challenge including network, cascade, and baseline
@@ -745,18 +759,23 @@ def run_challenge_measurements(fn,full_submission=True,output_dir=None,platform=
     platform - The platform ("github","reddit","twitter") of the data
     """
 
+    print('Loading data...')
     data = load_data(fn,full_submission=full_submission)
+    print('Done')
 
     ###Cascade###
-
-    if platform != 'github':
+    if platform != 'github' and scenario == 2:
         # instantiate Measurement objects for both the ground truth and simulation data
         cascade_measurements  = CascadeCollectionMeasurements(data)
 
+
         # run all assigned measurements
-        cascade_meas = run_all_measurements(cascade_measurements, cascade_measurement_params,
-                                            output_dir=output_dir)
-    
+        if platform == 'reddit':
+            cascade_meas = run_all_measurements(cascade_measurements, cascade_measurement_params,
+                                                output_dir=output_dir)
+        else:
+            cascade_meas = run_all_measurements(cascade_measurements, cascade_measurement_params_twitter,
+                                                output_dir=output_dir)
         
     ###Network####
     measurement_class = {'github': GithubNetworkMeasurements,
@@ -767,6 +786,7 @@ def run_challenge_measurements(fn,full_submission=True,output_dir=None,platform=
                 'twitter': 'rootID',
                 'reddit': 'rootID'}
         
+    print('Network measurements...')
     # instantiate Measurement objects for both the ground truth and simulation data
     # pass test=True to run on small data subset, test=False to run on full data set
     network_measurements = measurement_class[platform](data=data)
@@ -780,25 +800,71 @@ def run_challenge_measurements(fn,full_submission=True,output_dir=None,platform=
 
     ###Baseline###
     
-    configs = {'github': github_measurement_params,
-               'twitter': twitter_measurement_params,
-               'reddit': reddit_measurement_params}
+    if scenario == 1:
+        configs = {'github': 
+                   {'cve':github_scenario1_measurement_params_cve,
+                    'crypto':github_scenario1_measurement_params_crypto,
+                    'cyber':github_scenario1_measurement_params_cyber
+                    },
+                   'twitter': 
+                   {'cve':twitter_scenario1_measurement_params_cve,
+                    'crypto':twitter_scenario1_measurement_params_crypto,
+                    'cyber':twitter_scenario1_measurement_params_cyber
+                    },
+                   'reddit': 
+                   {'cve':reddit_scenario1_measurement_params_cve,
+                    'crypto':reddit_scenario1_measurement_params_crypto,
+                    'cyber':reddit_scenario1_measurement_params_cyber}
+                   }
+    else:
+        configs = {'twitter': 
+                   {'cve':twitter_scenario2_measurement_params_cve},
+                   'reddit': 
+                   {'cve':reddit_scenario2_measurement_params_cve,
+                    'crypto':reddit_scenario2_measurement_params_crypto,
+                    'cyber':reddit_scenario2_measurement_params_cyber}
+                   }
+
+    path = 'measurements_input_files/scenario1/' + domain + '/' + platform + '/'
+
+    content_file = path + '/' + platform + '_' + domain + '_repos_dec18.txt'
+    try:
+        content_ids = pd.read_csv(content_file,header=None)[0].tolist()
+    except:
+        if scenario == 1:
+            content_ids = []
+        else:
+            content_ids = ['all']
+
+    content_file = path + '/' + platform + '_' + domain + '_users_dec18.txt'
+    try:
+        user_ids = pd.read_csv(content_file,header=None)[0].tolist()
+    except:
+        user_ids = []
 
 
-    # specify node IDs for node-level measurements here
-    content_ids = {'github':['zyaFcNny9AyAVZP5gtJmkg/99_8zfqjZDlEUrIzBbLIWg','-0fJkZSEh8uE7esUZcOYPQ/y7z0d2p3o2I2H0cGUtPYMA'],
-                   'twitter':[],
-                   'reddit':[]}
-    user_ids = {'github':['zyaFcNny9AyAVZP5gtJmkg','2HMxrcbMmuDIM2ZgHJBrA'],
-                'twitter':[],
-                'reddit':[]}
+    if platform == 'github':
+        community_dict = path + 'community_dictionary_' + domain + '_dec18.pkl'
+        metaContentData = path + 'repo_meta_data_dec18_challenge.csv'
+        metaUserData = path + 'user_meta_data_dec18_challenge.csv'
+    else:
+        community_dict = ''
+        metaContentData=False
+        metaUserData=False
+
 
     # instantiate Measurement objects for both the ground truth and simulation data
-    baseline_measurements = BaselineMeasurements(data, platform=platform, content_node_ids=content_ids[platform],
-                                                 user_node_ids=user_ids[platform])
+    baseline_measurements = BaselineMeasurements(data, 
+                                                 platform=platform, 
+                                                 content_node_ids=content_ids,
+                                                 user_node_ids=user_ids,
+                                                 community_dictionary=community_dict,
+                                                 metaContentData = metaContentData,
+                                                 metaUserData = metaUserData)
+
 
     # run all assigned measurements
-    baseline_meas = run_all_measurements(baseline_measurements, configs[platform], 
+    baseline_meas = run_all_measurements(baseline_measurements, configs[platform][domain], 
                                          output_dir=output_dir)
 
     meas = {}
@@ -812,7 +878,7 @@ def run_challenge_measurements(fn,full_submission=True,output_dir=None,platform=
     return(meas)
 
 
-def run_challenge_metrics(gt_fn,sim_fn,full_submission=True,platform='github'):
+def run_challenge_metrics(gt_fn,sim_fn,full_submission=True,platform='github', domain='cve',scenario=1):
 
     """
     Run all metrics for the December challenge including network, cascade, and baseline
@@ -827,19 +893,23 @@ def run_challenge_metrics(gt_fn,sim_fn,full_submission=True,platform='github'):
     gt_data = load_data(gt_fn,full_submission=full_submission)
     sim_data = load_data(sim_fn,full_submission=full_submission)
 
-    ###Cascade###
-
-    if platform != 'github':
-        # instantiate Measurement objects for both the ground truth and simulation data
+    ###Cascade###                                                
+    if platform != 'github' and scenario == 2:
+        # instantiate Measurement objects for both the ground truth and simulation data                                                                                
         gt_cascade_measurements  = CascadeCollectionMeasurements(gt_data)
         sim_cascade_measurements  = CascadeCollectionMeasurements(sim_data)
 
-        # run all assigned metrics
-        cascade_metrics = run_all_metrics(gt_cascade_measurements, 
-                                          sim_cascade_measurements,
-                                          cascade_measurement_params)
-    
-        
+        # run all assigned metrics        
+        if platform != 'twitter':
+            cascade_metrics = run_all_metrics(gt_cascade_measurements,
+                                              sim_cascade_measurements,
+                                              cascade_measurement_params)
+        else:
+            cascade_metrics = run_all_metrics(gt_cascade_measurements,
+                                              sim_cascade_measurements,
+                                              cascade_measurement_params_twitter)
+
+
     ###Network####
     measurement_class = {'github': GithubNetworkMeasurements,
                          'twitter': TwitterNetworkMeasurements,
@@ -849,43 +919,98 @@ def run_challenge_metrics(gt_fn,sim_fn,full_submission=True,platform='github'):
                 'twitter': 'rootID',
                 'reddit': 'rootID'}
         
+    print('Network measurements...')
     # instantiate Measurement objects for both the ground truth and simulation data
     # pass test=True to run on small data subset, test=False to run on full data set
     gt_network_measurements = measurement_class[platform](data=gt_data)
     sim_network_measurements = measurement_class[platform](data=sim_data)
   
 
-    # run all assigned metrics
-    network_metrics = run_all_metrics(gt_network_measurements, 
-                                      sim_network_measurements, 
+    # run all assigned metrics                              
+    network_metrics = run_all_metrics(gt_network_measurements,
+                                      sim_network_measurements,
                                       network_measurement_params)
 
 
     ###Baseline###
-    configs = {'github': github_measurement_params,
-               'twitter': twitter_measurement_params,
-               'reddit': reddit_measurement_params}
+    if scenario == 1:
+        configs = {'github': 
+                   {'cve':github_scenario1_measurement_params_cve,
+                    'crypto':github_scenario1_measurement_params_crypto,
+                    'cyber':github_scenario1_measurement_params_cyber
+                    },
+                   'twitter': 
+                   {'cve':twitter_scenario1_measurement_params_cve,
+                    'crypto':twitter_scenario1_measurement_params_crypto,
+                    'cyber':twitter_scenario1_measurement_params_cyber
+                    },
+                   'reddit': 
+                   {'cve':reddit_scenario1_measurement_params_cve,
+                    'crypto':reddit_scenario1_measurement_params_crypto,
+                    'cyber':reddit_scenario1_measurement_params_cyber}
+                   }
+    else:
+        configs = {'twitter': 
+                   {'cve':twitter_scenario2_measurement_params_cve},
+                   'reddit': 
+                   {'cve':reddit_scenario2_measurement_params_cve,
+                    'crypto':reddit_scenario2_measurement_params_crypto,
+                    'cyber':reddit_scenario2_measurement_params_cyber}
+                   }
 
 
-    # specify node IDs for node-level measurements here (only for GitHub)
-    content_ids = {'github':['zyaFcNny9AyAVZP5gtJmkg/99_8zfqjZDlEUrIzBbLIWg','-0fJkZSEh8uE7esUZcOYPQ/y7z0d2p3o2I2H0cGUtPYMA'],
-                   'twitter':[],
-                   'reddit':[]}
-    user_ids = {'github':['zyaFcNny9AyAVZP5gtJmkg','2HMxrcbMmuDIM2ZgHJBrA'],
-                'twitter':[],
-                'reddit':[]}
+    path = 'measurements_input_files/scenario1/' + domain + '/' + platform + '/'
+
+    content_file = path + '/' + platform + '_' + domain + '_repos_dec18.txt'
+    try:
+        content_ids = pd.read_csv(content_file,header=None)[0].tolist()
+    except:
+        if scenario == 1:
+            content_ids = []
+        else:
+            content_ids = ['all']
+
+
+    content_file = path + '/' + platform + '_' + domain + '_users_dec18.txt'
+    try:
+        user_ids = pd.read_csv(content_file,header=None)[0].tolist()
+    except:
+        user_ids = []
+        
+    if platform == 'github':
+        community_dict = path + 'community_dictionary_' + domain + '_dec18.pkl'
+        metaContentData = path + 'repo_meta_data_dec18_challenge.csv'
+        metaUserData = path + 'user_meta_data_dec18_challenge.csv'
+    else:
+        community_dict = ''
+        metaContentData=False
+        metaUserData=False
 
     # instantiate Measurement objects for both the ground truth and simulation data
-    gt_baseline_measurements = BaselineMeasurements(gt_data, platform=platform, content_node_ids=content_ids[platform],
-                                                    user_node_ids=user_ids[platform])
-    sim_baseline_measurements = BaselineMeasurements(sim_data, platform=platform, content_node_ids=content_ids[platform],
-                                                     user_node_ids=user_ids[platform])
+    gt_baseline_measurements = BaselineMeasurements(gt_data, 
+                                                 platform=platform, 
+                                                 content_node_ids=content_ids,
+                                                 user_node_ids=user_ids,
+                                                 community_dictionary=community_dict,
+                                                 metaContentData = metaContentData,
+                                                 metaUserData = metaUserData)
+
+
+
+    sim_baseline_measurements = BaselineMeasurements(sim_data, 
+                                                    platform=platform, 
+                                                    content_node_ids=content_ids,
+                                                    user_node_ids=user_ids,
+                                                    community_dictionary=community_dict,
+                                                    metaContentData = metaContentData,
+                                                    metaUserData = metaUserData)
+
 
     # run all assigned metrics
     baseline_metrics = run_all_metrics(gt_baseline_measurements, 
                                        sim_baseline_measurements,
-                                       configs[platform])
-
+                                       configs[platform][domain])
+        
     metrics = {}
     try:
         metrics.update(cascade_metrics)
@@ -894,23 +1019,34 @@ def run_challenge_metrics(gt_fn,sim_fn,full_submission=True,platform='github'):
     metrics.update(network_metrics)
     metrics.update(baseline_metrics)
 
+
+    pprint.pprint(metrics)
     return(metrics)
 
 if __name__ == '__main__':
 
 
     print('Running examples!')
-    cascade_examples('reddit')
-    cascade_examples('twitter')
+    #cascade_examples('reddit')
+    #cascade_examples('twitter')
 
-    network_examples('reddit')
-    network_examples('twitter')
-    network_examples('github')
+    #network_examples('reddit')
+    #network_examples('twitter')
+    #network_examples('github')
 
-    baseline_examples('reddit')
-    baseline_examples('twitter')
-    baseline_examples('github')
+    #baseline_examples('reddit')
+    #baseline_examples('twitter')
+    #baseline_examples('github')
     print('Done.')
 
-    print("Running all challenge measurements for one platform")
-    measurements = run_challenge_measurements('reddit_data_sample.json',platform='reddit')
+
+    domain = 'crypto'
+    platform = 'reddit'
+    scenario=1
+
+    run_challenge_metrics(platform + "_data_sample.json",platform + "_data_sample.json",
+                          full_submission=True,platform=platform,domain=domain,scenario=scenario)
+
+
+
+        

@@ -72,8 +72,8 @@ def absolute_percentage_error(ground_truth, simulation):
 
     try:
         if ground_truth==0:
-            return np.inf
-        return (np.abs(float(simulation) - float(ground_truth)))/float(ground_truth)*100.
+            return None
+        return 100.*(np.abs(float(simulation) - float(ground_truth)))/float(ground_truth)
     except TypeError:
         print('Input should be two scalar, numerics')
         return None
@@ -391,7 +391,12 @@ def rmse(ground_truth, simulation, join='inner', fill_value=0, relative=False):
         if not relative:
             return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean())
         else:
-            return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean()) / iqr(df['value_gt'].values)
+            iq_range = float(iqr(df['value_gt'].values))
+
+            if iq_range > 0:
+                return np.sqrt(((df["value_sim"] - df["value_gt"]) ** 2).mean()) / iq_range
+            else:
+                return None
     else:
         return None
 
@@ -429,7 +434,7 @@ def r2(ground_truth, simulation, join='inner', fill_value=0):
 
     df = join_dfs(ground_truth,simulation,join=join,fill_value=fill_value).fillna(0)
 
-    if df.empty:
+    if df.empty or len(df.index) <= 1:
         return None
     else:
         return r2_score(df["value_gt"],df["value_sim"])
