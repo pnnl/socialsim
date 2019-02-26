@@ -31,6 +31,7 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     print('Extracting reddit data...')
     
     ############## Mongo queries ####################################
+    #We store the comments and posts in two seperate collections so we have two different queries
     client = MongoClient()
     collection = client[db][collection_name]
 
@@ -59,6 +60,7 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
 
     ############## Mongo queries ####################################
     #extract posts data from mongo
+    #We store the comments and posts in two seperate collections so we have two different queries
     collection_name = collection_name.replace("comments","posts")
     collection = client[db][collection_name]
     print('Querying mongo for posts...')
@@ -165,7 +167,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     start_datetime = datetime.strptime(start_date,'%Y-%m-%d')
     end_datetime = datetime.strptime(end_date,'%Y-%m-%d')
-
     start_timestamp = str((start_datetime - datetime(1970,1,1)).total_seconds())[:-2] + '000'
     end_timestamp = str((end_datetime - datetime(1970,1,1)).total_seconds())[:-2] + '000'
 
@@ -206,7 +207,8 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
         tweets['quoted_status.in_reply_to_status_id_h'] = ''
     if 'quoted_status.is_quote_status' not in tweets:
         tweets['quoted_status.is_quote_status'] = False
-        
+
+    #keep track of specific types of reply chains (e.g. retweet of reply, retweet of quote of reply) because the parents and roots will be assigned differently
     tweets.loc[:,'is_retweet_of_reply'] = (~tweets['retweeted_status.in_reply_to_status_id_h'].isna()) & (~(tweets['retweeted_status.in_reply_to_status_id_h'] == ''))
     tweets.loc[:,'is_retweet_of_quote'] = (~tweets['retweeted_status'].isna()) & (~tweets['quoted_status'].isna()) & (tweets['quoted_status.in_reply_to_status_id_h'] == '')              
     tweets.loc[:,'is_retweet_of_quote_of_reply'] = (~tweets['retweeted_status'].isna()) & (~tweets['quoted_status'].isna()) & (~(tweets['quoted_status.in_reply_to_status_id_h'] == ''))
@@ -223,6 +225,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     replies = tweets[tweets['is_reply']]
     if len(replies) > 0:
+        #for replies we know immediate parent but not root
         replies.loc[:,'actionType'] = 'reply'
         replies.loc[:,'parentID'] = tweets['in_reply_to_status_id_h']
         replies.loc[:,'rootID'] = '?'
@@ -232,6 +235,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     retweets = tweets[ (tweets['is_retweet']) & (~tweets['is_quote']) ]
     if len(retweets) > 0:
+        #for retweets we know the root but not the immediate parent
         retweets.loc[:,'actionType'] = 'retweet'
         retweets.loc[:,'rootID'] = retweets['retweeted_status'].apply(lambda x: x['id_h'])
         retweets.loc[:,'parentID'] = '?'
@@ -241,29 +245,45 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     retweets_of_replies = tweets[ tweets['is_retweet_of_reply'] ]
     if len(retweets_of_replies) > 0:
+        #for retweets of replies the "root" is actually the reply not the ultimate root
+        #the parent of a retweet of a reply will be the reply or any retweet of the reply
+        #the root can be retraced by following parents up the tree
         retweets_of_replies.loc[:,'parentID'] = '?'
         retweets_of_replies.loc[:,'rootID'] = '?'
         retweets_of_replies.loc[:,'partialParentID'] = retweets_of_replies['retweeted_status'].apply(lambda x: x['in_reply_to_status_id_h'])
         retweets_of_replies.loc[:,'actionType'] = 'retweet'
 
+        to_concat.append(retweets_of_replies)
+
+
     retweets_of_quotes = tweets[ tweets['is_retweet_of_quote'] ]
     if len(retweets_of_quotes) > 0:
+        #for retweets of quotes we know the root (from the quoted status) but not the parent
+        #the parent will be either the quote or any retweets of it
         retweets_of_quotes.loc[:,'parentID'] = '?'
         retweets_of_quotes.loc[:,'rootID'] = retweets_of_quotes['quoted_status'].apply(lambda x: x['id_h'])
         retweets_of_quotes.loc[:,'partialParentID'] = retweets_of_quotes['retweeted_status'].apply(lambda x: x['id_str_h'])
         retweets_of_quotes.loc[:,'actionType'] = 'retweet'
 
+        to_concat.append(retweets_of_quotes)
+
 
     retweets_of_quotes_of_replies = tweets[ tweets['is_retweet_of_quote_of_reply'] ]
-    if len(retweets_of_quotes) > 0:
-        retweets_of_quotes.loc[:,'parentID'] = '?'
-        retweets_of_quotes.loc[:,'rootID'] = '?'
-        retweets_of_quotes.loc[:,'partialParentID'] = retweets_of_quotes['quoted_status'].apply(lambda x: x['id_str_h'])
-        retweets_of_quotes.loc[:,'actionType'] = 'retweet'
+    if len(retweets_of_quotes_of_replies) > 0:
+        #for retweets of quotes of replies we don't know the root or the parent. the quoted status refers back to the reply not the final root
+        #the parent will be either the quote or a retweet of the quote
+        #we can find the root by tracking parents up the tree
+        retweets_of_quotes_of_replies.loc[:,'parentID'] = '?'
+        retweets_of_quotes_of_replies.loc[:,'rootID'] = '?'
+        retweets_of_quotes_of_replies.loc[:,'partialParentID'] = retweets_of_quotes_of_replies['quoted_status'].apply(lambda x: x['id_str_h'])
+        retweets_of_quotes_of_replies.loc[:,'actionType'] = 'retweet'
+
+        to_concat.append(retweets_of_quotes_of_replies)
 
                                                                                                                                
     quotes = tweets[tweets['is_quote']]
     if len(quotes) > 0:
+        #for quotes we know the root but not the parent
         quotes.loc[:,'actionType'] = 'quote'
         quotes.loc[:,'rootID'] = quotes['quoted_status'].apply(lambda x: x['id_h'])
         quotes.loc[:,'parentID'] = '?'
@@ -273,27 +293,38 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     quotes_of_replies = tweets[ tweets['is_quote_of_reply'] ]
     if len(quotes_of_replies) > 0:
+        #for quotes of replies we don't know the root or the parent
+        #the parent will be the reply or any retweets of the reply
+        #the root can be tracked back using the parents in the tree
         quotes_of_replies.loc[:,'parentID'] = '?'
         quotes_of_replies.loc[:,'rootID'] = '?'
         quotes_of_replies.loc[:,'partialParentID'] = quotes_of_replies['quoted_status'].apply(lambda x: x['in_reply_to_status_id_h'])
         quotes_of_replies.loc[:,'actionType'] = 'quote'
 
+        to_concat.append(quotes_of_replies)
+
 
     quotes_of_quotes = tweets[ tweets['is_quote_of_quote'] ]
     if len(quotes_of_quotes) > 0:
+        #for quotes of quotes we don't know the parent or the root
+        #the parent will be the first quote or any retweets of it
+        #the root can be traced back through the parent tree
         quotes_of_quotes.loc[:,'parentID'] = '?'
         quotes_of_quotes.loc[:,'rootID'] = '?'
-        quotes_of_quotes.loc[:,'partialParentID'] = quotes_of_replies['quoted_status'].apply(lambda x: x['quoted_status_id_str'])
+        quotes_of_quotes.loc[:,'partialParentID'] = quotes_of_quotes['quoted_status'].apply(lambda x: x['quoted_status_id_str'])
         quotes_of_quotes.loc[:,'actionType'] = 'quote'
+
+        to_concat.append(quotes_of_quotes)
+
 
     orig_tweets = tweets[tweets['is_orig']]
     if len(orig_tweets) > 0:
+        #for original tweets assign parent and root to be itself
         orig_tweets.loc[:,'actionType'] = 'tweet'
         orig_tweets.loc[:,'parentID'] = orig_tweets['nodeID']
         orig_tweets.loc[:,'rootID'] = orig_tweets['nodeID']
         orig_tweets.loc[:,'partialParentID'] = orig_tweets['nodeID']
         to_concat.append(orig_tweets)
-
                                                                                                                                
     tweets = pd.concat(to_concat,ignore_index=True)
 
@@ -348,11 +379,14 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
             list_info += infos
     
             if len(list_info) > 0 and len(children) > 1:
+                #assign parents information ID list to all children
                 tweets.loc[children.index.values,'threadInfoIDs'] = [list_info for i in range(len(children))]
             elif len(list_info) > 0 and len(children) == 1:
+                #assign parents information ID list to single child
                 tweets.at[children.index[0],'threadInfoIDs'] = list_info
 
             for child in children.values:
+                #navigate further down the tree
                 add_info_to_children(child,list_info)
 
 
@@ -413,6 +447,9 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
     print('Extraing GitHub data...')
 
     ############## Mongo queries ####################################
+    #we are storing the github data in two collections, one for events that mention an info ID and one for
+    #events on repos whose readme or description matches the information ID. we just concatenate all those
+    #events here.
     client = MongoClient()
 
     print('Querying mongo...')
@@ -426,6 +463,7 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
                                                           "$lt":end_date + "T00:00:00Z"}}))
 
 
+    #concatenate two types of events
     mongo_data_json = mongo_data_json_events + mongo_data_json_repos
     ############## End mongo queries ####################################
 
