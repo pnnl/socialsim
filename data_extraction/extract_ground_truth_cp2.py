@@ -219,7 +219,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     tweets.loc[:,'is_quote_of_quote'] = (~tweets['quoted_status.is_quote_status'].isna()) & (tweets['quoted_status.is_quote_status'] == True) & (tweets['retweeted_status'].isna())
     tweets.loc[:,'is_quote'] = (~tweets['quoted_status'].isna()) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (tweets['retweeted_status'].isna())
 
-    tweets.loc[:,'is_orig'] = (~tweets['is_reply']) & (~tweets['is_retweet']) & (~tweets['is_quote']) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (~tweets['is_retweet_of_reply'])
+    tweets.loc[:,'is_orig'] = (~tweets['is_reply']) & (~tweets['is_retweet']) & (~tweets['is_quote']) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (~tweets['is_retweet_of_reply']) & (~tweets['is_retweet_of_quote_of_reply']) & (~tweets['is_retweet_of_quote'])
     
     to_concat = []
 
