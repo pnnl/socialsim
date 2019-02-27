@@ -43,7 +43,8 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     comments = pd.DataFrame(mongo_json_data_comments)
 
     
-    output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime', 'urlDomains','informationIDs']
+    output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime',
+                      'urlDomains','informationIDs','platform','communityID']
 
     print('Extracting fields...')
     comments = comments.drop_duplicates('id_h')
@@ -56,6 +57,8 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     comments.loc[:,'informationIDs'] = [c['extension']['socialsim_keywords'] for i,c in comments.iterrows()]
 
     comments.loc[:,'urlDomains'] = comments["body_m"].apply(get_url_domains)
+    comments.loc[:,'platform'] = 'reddit'
+
     
 
     ############## Mongo queries ####################################
@@ -72,7 +75,8 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     
     mongo_json_data = mongo_json_data_posts + mongo_json_data_comments
     
-    output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime', 'urlDomains','informationIDs']
+    output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime',
+                      'urlDomains','informationIDs','platform','communityID']
     
     print('Extracting fields...')
     posts = posts.drop_duplicates('id_h')
@@ -87,10 +91,13 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     posts.loc[:,'communityID'] = posts['subreddit_id']
     posts.loc[:,'informationIDs'] = [p['extension']['socialsim_keywords'] for i,p in posts.iterrows()]
     posts.loc[:,'urlDomains'] = posts["selftext_m"].apply(get_url_domains)    
+    posts.loc[:,'platform'] = 'reddit'
 
+    
     reddit_data = pd.concat([comments[output_columns],posts[output_columns]],ignore_index=True)
     reddit_data = reddit_data.reset_index(drop=True)
-        
+
+    
     #remove broken portions
     reddit_data = reddit_data[reddit_data['parentID'].isin(list(set(reddit_data['nodeID'])))]
     reddit_data = reddit_data[reddit_data['rootID'].isin(list(set(reddit_data['nodeID'])))]
@@ -186,14 +193,15 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     mongo_data = mongo_data.sort_values("timestamp_ms")
 
-    output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime', 'partialParentID','urlDomains','informationIDs']
+    output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime', 'partialParentID','urlDomains','informationIDs','platform']
 
     print('Extracting fields...')
     tweets = mongo_data.drop_duplicates('id_str_h')
     tweets.rename(columns={'id_str_h': 'nodeID',
                            'timestamp_ms': 'nodeTime'}, inplace=True)
 
-    
+
+    tweets.loc[:,'platform'] = 'twitter'
     tweets.loc[:,'nodeTime'] = pd.to_datetime(tweets['nodeTime'],unit='ms')
     tweets.loc[:,'nodeTime'] = tweets['nodeTime'].apply(lambda x: datetime.strftime(x,'%Y-%m-%dT%H:%M:%SZ'))
 
@@ -508,6 +516,7 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
 
 def main():
 
+    all_data = []
 
     start_date = '2017-08-15'
     end_date = '2017-08-31'
@@ -520,6 +529,8 @@ def main():
     print('Reddit output:')
     print(reddit_data)
 
+    all_data += reddit_data.to_dict('records')
+    
     twitter_data,twitter_json_data = simulation_output_format_from_mongo_data_twitter(db='Jun19-train',
                                                                                       start_date=start_date,
                                                                                       end_date=end_date,
@@ -529,17 +540,24 @@ def main():
     print('Twitter output:')
     print(twitter_data)
 
+    all_data += twitter_data.to_dict('records')
+
     
     github_data,github_json_data = simulation_output_format_from_mongo_data_github(db='Jun19-train',
                                                                                    start_date=start_date,
                                                                                    end_date=end_date,
                                                                                    collection_name="GitHub_CVE")
 
+    
     print('Github output:')
     print(github_data)
 
+    all_data += github_data.to_dict('records')
     
-    
+
+    with open('test_data.json','w') as f:
+        for d in all_data:
+            f.write(json.dumps(d) + '\n')
     
 if __name__ == "__main__":
     main()
