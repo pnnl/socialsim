@@ -1,4 +1,3 @@
-
 import pandas as pd
 pd.set_option('display.expand_frame_repr', False)
 
@@ -25,6 +24,20 @@ def get_url_domains(x,prefix='url: '):
     return(res)
     
 
+def convert_timestamps(dataset):
+
+    try:
+        dataset['nodeTime'] = pd.to_datetime(dataset['nodeTime'], unit='s')
+    except:
+        try:
+            dataset['nodeTime'] = pd.to_datetime(dataset['nodeTime'], unit='ms')
+        except:
+            dataset['nodeTime'] = pd.to_datetime(dataset['nodeTime'])
+
+    dataset['nodeTime'] = dataset['nodeTime'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+            
+    return(dataset)
+            
 def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-05',
                                                     collection_name="Reddit_CVE_comments"):
 
@@ -41,20 +54,22 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     ############## End mongo queries ####################################
 
     comments = pd.DataFrame(mongo_json_data_comments)
-
     
     output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime',
                       'urlDomains','informationIDs','platform','communityID']
 
     print('Extracting fields...')
+    comments.loc[:,'informationIDs'] = [c['extension']['socialsim_keywords'] for i,c in comments.iterrows()]
+    comments['n_info_ids'] = comments['informationIDs'].apply(len)
+    comments = comments.sort_values("n_info_ids",ascending=False)
     comments = comments.drop_duplicates('id_h')
+    
     comments.rename(columns={'id_h':'nodeID','author_h':'nodeUserID',
                              'created_utc':'nodeTime','parent_id_h':'parentID','link_id_h':'rootID'}, inplace=True)
 
     comments.loc[:,'actionType']=['comment']*len(comments)
     comments.loc[:,'nodeID']=['t1_' + x for x in comments['nodeID']]
     comments.loc[:,'communityID'] = comments['subreddit_id']
-    comments.loc[:,'informationIDs'] = [c['extension']['socialsim_keywords'] for i,c in comments.iterrows()]
 
     comments.loc[:,'urlDomains'] = comments["body_m"].apply(get_url_domains)
     comments.loc[:,'platform'] = 'reddit'
@@ -72,13 +87,16 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     ############## End mongo queries ####################################
 
     posts = pd.DataFrame(mongo_json_data_posts)
-    
+  
     mongo_json_data = mongo_json_data_posts + mongo_json_data_comments
     
     output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime',
                       'urlDomains','informationIDs','platform','communityID']
     
     print('Extracting fields...')
+    posts.loc[:,'informationIDs'] = [p['extension']['socialsim_keywords'] for i,p in posts.iterrows()]
+    posts['n_info_ids'] = posts['informationIDs'].apply(len)
+    posts = posts.sort_values("n_info_ids",ascending=False)
     posts = posts.drop_duplicates('id_h')
 
     posts.rename(columns={'id_h':'nodeID','author_h':'nodeUserID','created_utc':'nodeTime'},
@@ -89,14 +107,12 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     posts.loc[:,'actionType']=['post']*len(posts)
     posts.loc[:,'nodeAttributes']=[{'communityID':subredditID} for subredditID in posts['subreddit_id']]
     posts.loc[:,'communityID'] = posts['subreddit_id']
-    posts.loc[:,'informationIDs'] = [p['extension']['socialsim_keywords'] for i,p in posts.iterrows()]
     posts.loc[:,'urlDomains'] = posts["selftext_m"].apply(get_url_domains)    
     posts.loc[:,'platform'] = 'reddit'
 
     
     reddit_data = pd.concat([comments[output_columns],posts[output_columns]],ignore_index=True)
     reddit_data = reddit_data.reset_index(drop=True)
-
     
     #remove broken portions
     reddit_data = reddit_data[reddit_data['parentID'].isin(list(set(reddit_data['nodeID'])))]
@@ -112,7 +128,8 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     #remove it temporarily and add back later
     nodeTimes = reddit_data['nodeTime']
     reddit_data = reddit_data[[c for c in reddit_data.columns if c != 'nodeTime']]
-
+    
+    
     #get children of node
     def get_children(nodeID):
 
@@ -150,13 +167,15 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
         add_info_to_children(root)
         if r % 50 == 0:
             print('{}/{}'.format(r,len(roots)))
-    
+
+            
     reddit_data['nodeTime'] = nodeTimes
 
     reddit_data['informationIDs'] = reddit_data.apply(lambda x: list(set(x['informationIDs'] + x['threadInfoIDs'])),axis=1)
+    
     reddit_data = reddit_data[reddit_data['informationIDs'].str.len() > 0]
     reddit_data = reddit_data.drop('threadInfoIDs',axis=1)
-
+    
     print('Expanding events...')
     #expand lists of info IDs into seperate rows (i.e. an individual event is duplicated if it pertains to multiple information IDs)
     s = reddit_data.apply(lambda x: pd.Series(x['informationIDs']), axis=1).stack().reset_index(level=1, drop=True)
@@ -165,7 +184,9 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     reddit_data = reddit_data.drop('informationIDs', axis=1).join(s).reset_index(drop=True)
 
     reddit_data = reddit_data.sort_values('nodeTime')
-        
+
+    reddit_data = convert_timestamps(reddit_data)
+
     return reddit_data,mongo_json_data
     
 
@@ -190,13 +211,17 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     mongo_data = pd.DataFrame(mongo_data_json)
 
-
     mongo_data = mongo_data.sort_values("timestamp_ms")
 
     output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime', 'partialParentID','urlDomains','informationIDs','platform']
 
     print('Extracting fields...')
-    tweets = mongo_data.drop_duplicates('id_str_h')
+    tweets = mongo_data
+    tweets.loc[:,'informationIDs'] = tweets['extension'].apply(lambda x: x['socialsim_keywords'])
+    tweets['n_info_ids'] = tweets['informationIDs'].apply(len)
+    tweets = tweets.sort_values('n_info_ids',ascending=False)
+    tweets = tweets.drop_duplicates('id_str_h')
+    
     tweets.rename(columns={'id_str_h': 'nodeID',
                            'timestamp_ms': 'nodeTime'}, inplace=True)
 
@@ -220,7 +245,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     tweets.loc[:,'is_retweet_of_reply'] = (~tweets['retweeted_status.in_reply_to_status_id_h'].isna()) & (~(tweets['retweeted_status.in_reply_to_status_id_h'] == ''))
     tweets.loc[:,'is_retweet_of_quote'] = (~tweets['retweeted_status'].isna()) & (~tweets['quoted_status'].isna()) & (tweets['quoted_status.in_reply_to_status_id_h'] == '')              
     tweets.loc[:,'is_retweet_of_quote_of_reply'] = (~tweets['retweeted_status'].isna()) & (~tweets['quoted_status'].isna()) & (~(tweets['quoted_status.in_reply_to_status_id_h'] == ''))
-    tweets.loc[:,'is_retweet'] = (~tweets['retweeted_status'].isna()) & (~tweets['is_retweet_of_reply'])
+    tweets.loc[:,'is_retweet'] = (~tweets['retweeted_status'].isna()) & (~tweets['is_retweet_of_reply']) & (~tweets['is_retweet_of_quote']) & (~tweets['is_retweet_of_quote_of_reply'])
 
     
     tweets.loc[:,'is_quote_of_reply'] = (~tweets['quoted_status.in_reply_to_status_id_h'].isna()) & (~(tweets['quoted_status.in_reply_to_status_id_h'] == '')) & (tweets['retweeted_status'].isna())
@@ -228,7 +253,10 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     tweets.loc[:,'is_quote'] = (~tweets['quoted_status'].isna()) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (tweets['retweeted_status'].isna())
 
     tweets.loc[:,'is_orig'] = (~tweets['is_reply']) & (~tweets['is_retweet']) & (~tweets['is_quote']) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (~tweets['is_retweet_of_reply']) & (~tweets['is_retweet_of_quote_of_reply']) & (~tweets['is_retweet_of_quote'])
-    
+
+
+    tweet_types = ['is_reply','is_retweet','is_quote','is_orig','is_retweet_of_reply','is_retweet_of_quote','is_retweet_of_quote_of_reply','is_quote_of_reply','is_quote_of_quote']
+   
     to_concat = []
 
     replies = tweets[tweets['is_reply']]
@@ -349,7 +377,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
         return(url_list)
 
     tweets.loc[:,'urlDomains'] = tweets["entities"].apply(lambda x: x['urls']).apply(url_wrapper)
-    tweets.loc[:,'informationIDs'] = tweets['extension'].apply(lambda x: x['socialsim_keywords'])
     
     tweets = tweets[output_columns]
 
@@ -363,7 +390,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     tweets['threadInfoIDs'] = [[] for i in range(len(tweets))]
 
     tweets = tweets.reset_index(drop=True)
-
+    
     #get children of node
     def get_children(nodeID):
 
@@ -407,16 +434,21 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
             if r % 50 == 0:
                 print('{}/{}'.format(r,len(roots)))
 
+                
     tweets['informationIDs'] = tweets.apply(lambda x: list(set(x['informationIDs'] + x['threadInfoIDs'])),axis=1)
     tweets = tweets[tweets['informationIDs'].str.len() > 0]
     tweets = tweets.drop('threadInfoIDs',axis=1)
 
+    
     print('Expanding events...')
     #expand lists of info IDs into seperate rows (i.e. an individual event is duplicated if it pertains to multiple information IDs)
     s = tweets.apply(lambda x: pd.Series(x['informationIDs']), axis=1).stack().reset_index(level=1, drop=True)
     s.name = 'informationID'
     
     tweets = tweets.drop(['informationIDs','partialParentID'], axis=1).join(s).reset_index(drop=True)
+    
+    tweets = convert_timestamps(tweets)
+
     
     return tweets,mongo_data_json
 
@@ -477,7 +509,7 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
 
     mongo_data = pd.DataFrame(mongo_data_json)
 
-
+    
     print('Extracting fields...')
     output_columns = ['nodeID', 'nodeUserID', 'actionType', 'nodeTime','informationIDs','urlDomains','platform']
 
@@ -499,17 +531,23 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
 
     mongo_data.loc[:,'urlDomains'] = mongo_data.apply(get_text_field,axis=1).apply(get_url_domains)
 
+    
     events = mongo_data[output_columns]
     
     events = events[events.actionType.isin(['PullRequestEvent','IssuesEvent','CreateEvent','DeleteEvent','WatchEvent','ForkEvent',
                                             'PullRequestReviewCommentEvent','CommitCommentEvent','PushEvent','IssueCommentEvent'])]
     
+
+
     print('Expanding events...')    
     #expand lists of info IDs into seperate rows (i.e. an individual event is duplicated if it pertains to multiple information IDs)
     s = events.apply(lambda x: pd.Series(x['informationIDs']), axis=1).stack().reset_index(level=1, drop=True)
     s.name = 'informationID'
 
     events = events.drop('informationIDs', axis=1).join(s).reset_index(drop=True)
+
+    events = convert_timestamps(events)
+
     
     return events, mongo_data_json
 
@@ -518,17 +556,18 @@ def main():
 
     all_data = []
 
-    start_date = '2017-08-15'
-    end_date = '2017-08-31'
+    start_date = '2017-08-01'
+    end_date = '2017-08-29'
 
     reddit_data,reddit_json_data = simulation_output_format_from_mongo_data_reddit(db='Jun19-train',
                                                                                    start_date=start_date,
                                                                                    end_date=end_date,
                                                                                    collection_name="Reddit_CVE_comments")
 
+    
     print('Reddit output:')
-    print(reddit_data)
-
+    print(reddit_data['actionType'].value_counts())
+    
     all_data += reddit_data.to_dict('records')
     
     twitter_data,twitter_json_data = simulation_output_format_from_mongo_data_twitter(db='Jun19-train',
@@ -538,8 +577,8 @@ def main():
 
 
     print('Twitter output:')
-    print(twitter_data)
-
+    print(twitter_data['actionType'].value_counts())
+    
     all_data += twitter_data.to_dict('records')
 
     
@@ -550,7 +589,8 @@ def main():
 
     
     print('Github output:')
-    print(github_data)
+    print(github_data['actionType'].value_counts())
+   
 
     all_data += github_data.to_dict('records')
     
