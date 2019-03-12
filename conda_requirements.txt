@@ -24,7 +24,6 @@ libstdcxx-ng=8.2.0=hdf63c60_1
 libuuid=2.32.1=h470a237_2
 libxcb=1.13=h470a237_2
 libxml2=2.9.8=h422b904_5
-mkl=2019.0=118
 mkl_fft=1.0.6=py27_0
 mkl_random=1.0.1=py27_0
 ncurses=6.1=hf484d3e_0
