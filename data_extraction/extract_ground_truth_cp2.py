@@ -37,7 +37,16 @@ def convert_timestamps(dataset):
     dataset['nodeTime'] = dataset['nodeTime'].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
             
     return(dataset)
-            
+
+def get_info_id_fields(row):
+
+    info_ids = row['extension']['socialsim_keywords']
+    
+    if "socialsim_urls_m" in row['extension']:
+        info_ids += row['extension']["socialsim_urls_m"]
+    
+    return list(set(info_ids))
+        
 def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-05',
                                                     collection_name="Reddit_CVE_comments"):
 
@@ -59,7 +68,7 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
                       'urlDomains','informationIDs','platform','communityID']
 
     print('Extracting fields...')
-    comments.loc[:,'informationIDs'] = [c['extension']['socialsim_keywords'] for i,c in comments.iterrows()]
+    comments.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(c) for i,c in comments.iterrows()])
     comments['n_info_ids'] = comments['informationIDs'].apply(len)
     comments = comments.sort_values("n_info_ids",ascending=False)
     comments = comments.drop_duplicates('id_h')
@@ -94,7 +103,7 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
                       'urlDomains','informationIDs','platform','communityID']
     
     print('Extracting fields...')
-    posts.loc[:,'informationIDs'] = [p['extension']['socialsim_keywords'] for i,p in posts.iterrows()]
+    posts.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(p) for i,p in posts.iterrows()])
     posts['n_info_ids'] = posts['informationIDs'].apply(len)
     posts = posts.sort_values("n_info_ids",ascending=False)
     posts = posts.drop_duplicates('id_h')
@@ -210,15 +219,15 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     ############## End mongo queries ####################################
 
     mongo_data = pd.DataFrame(mongo_data_json)
-
+    
     mongo_data = mongo_data.sort_values("timestamp_ms")
 
     output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime', 'partialParentID','urlDomains','informationIDs','platform']
 
     print('Extracting fields...')
     tweets = mongo_data
-    tweets.loc[:,'informationIDs'] = tweets['extension'].apply(lambda x: x['socialsim_keywords'])
-    tweets['n_info_ids'] = tweets['informationIDs'].apply(len)
+    tweets.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(t) for i,t in tweets.iterrows()])
+    tweets.loc[:,'n_info_ids'] = tweets['informationIDs'].apply(len)
     tweets = tweets.sort_values('n_info_ids',ascending=False)
     tweets = tweets.drop_duplicates('id_str_h')
     
@@ -235,11 +244,11 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     tweets.loc[:,'is_reply'] = (tweets['in_reply_to_status_id_h'] != '') & (~tweets['in_reply_to_status_id_h'].isna())
 
     if 'retweeted_status.in_reply_to_status_id_h' not in tweets:
-        tweets['retweeted_status.in_reply_to_status_id_h'] = ''
+        tweets.loc[:,'retweeted_status.in_reply_to_status_id_h'] = ''
     if 'quoted_status.in_reply_to_status_id_h' not in tweets:
-        tweets['quoted_status.in_reply_to_status_id_h'] = ''
+        tweets.loc[:,'quoted_status.in_reply_to_status_id_h'] = ''
     if 'quoted_status.is_quote_status' not in tweets:
-        tweets['quoted_status.is_quote_status'] = False
+        tweets.loc[:,'quoted_status.is_quote_status'] = False
 
     #keep track of specific types of reply chains (e.g. retweet of reply, retweet of quote of reply) because the parents and roots will be assigned differently
     tweets.loc[:,'is_retweet_of_reply'] = (~tweets['retweeted_status.in_reply_to_status_id_h'].isna()) & (~(tweets['retweeted_status.in_reply_to_status_id_h'] == ''))
@@ -254,7 +263,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     tweets.loc[:,'is_orig'] = (~tweets['is_reply']) & (~tweets['is_retweet']) & (~tweets['is_quote']) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (~tweets['is_retweet_of_reply']) & (~tweets['is_retweet_of_quote_of_reply']) & (~tweets['is_retweet_of_quote'])
 
-
+    
     tweet_types = ['is_reply','is_retweet','is_quote','is_orig','is_retweet_of_reply','is_retweet_of_quote','is_retweet_of_quote_of_reply','is_quote_of_reply','is_quote_of_quote']
    
     to_concat = []
@@ -278,7 +287,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
         retweets.loc[:,'partialParentID'] = retweets['retweeted_status'].apply(lambda x: x['id_h'])
 
         to_concat.append(retweets)
-
+        
     retweets_of_replies = tweets[ tweets['is_retweet_of_reply'] ]
     if len(retweets_of_replies) > 0:
         #for retweets of replies the "root" is actually the reply not the ultimate root
@@ -291,7 +300,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
         to_concat.append(retweets_of_replies)
 
-
     retweets_of_quotes = tweets[ tweets['is_retweet_of_quote'] ]
     if len(retweets_of_quotes) > 0:
         #for retweets of quotes we know the root (from the quoted status) but not the parent
@@ -302,7 +310,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
         retweets_of_quotes.loc[:,'actionType'] = 'retweet'
 
         to_concat.append(retweets_of_quotes)
-
 
     retweets_of_quotes_of_replies = tweets[ tweets['is_retweet_of_quote_of_reply'] ]
     if len(retweets_of_quotes_of_replies) > 0:
@@ -315,8 +322,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
         retweets_of_quotes_of_replies.loc[:,'actionType'] = 'retweet'
 
         to_concat.append(retweets_of_quotes_of_replies)
-
-                                                                                                                               
+                                                                                                                                       
     quotes = tweets[tweets['is_quote']]
     if len(quotes) > 0:
         #for quotes we know the root but not the parent
@@ -339,7 +345,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
         to_concat.append(quotes_of_replies)
 
-
     quotes_of_quotes = tweets[ tweets['is_quote_of_quote'] ]
     if len(quotes_of_quotes) > 0:
         #for quotes of quotes we don't know the parent or the root
@@ -352,7 +357,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
         to_concat.append(quotes_of_quotes)
 
-
     orig_tweets = tweets[tweets['is_orig']]
     if len(orig_tweets) > 0:
         #for original tweets assign parent and root to be itself
@@ -361,9 +365,9 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
         orig_tweets.loc[:,'rootID'] = orig_tweets['nodeID']
         orig_tweets.loc[:,'partialParentID'] = orig_tweets['nodeID']
         to_concat.append(orig_tweets)
-                                                                                                                               
-    tweets = pd.concat(to_concat,ignore_index=True)
 
+    tweets = pd.concat(to_concat,ignore_index=True,sort=False)
+    
     def url_wrapper(urls):
 
         url_list = []
@@ -388,7 +392,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     #initialize info ID column with empty lists
     tweets['threadInfoIDs'] = [[] for i in range(len(tweets))]
-
+    
     tweets = tweets.reset_index(drop=True)
     
     #get children of node
@@ -424,7 +428,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
                 #navigate further down the tree
                 add_info_to_children(child,list_info)
 
-
     print('Adding information IDs to children...')
     #for each thread in data, propagate infromation IDs to children
     roots = tweets['rootID'].unique()
@@ -434,7 +437,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
             if r % 50 == 0:
                 print('{}/{}'.format(r,len(roots)))
 
-                
     tweets['informationIDs'] = tweets.apply(lambda x: list(set(x['informationIDs'] + x['threadInfoIDs'])),axis=1)
     tweets = tweets[tweets['informationIDs'].str.len() > 0]
     tweets = tweets.drop('threadInfoIDs',axis=1)
@@ -449,7 +451,6 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     
     tweets = convert_timestamps(tweets)
 
-    
     return tweets,mongo_data_json
 
 
@@ -527,7 +528,7 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
 
     mongo_data.loc[:,'platform'] = 'github'
 
-    mongo_data.loc[:,'informationIDs'] = mongo_data['socialsim_details'].apply(lambda x: list(itertools.chain.from_iterable([m['extension']['socialsim_keywords'] for m in x])))
+    mongo_data.loc[:,'informationIDs'] = pd.Series(mongo_data['socialsim_details'].apply(lambda x: list(itertools.chain.from_iterable([get_info_id_fields(m) for m in x]))))
 
     mongo_data.loc[:,'urlDomains'] = mongo_data.apply(get_text_field,axis=1).apply(get_url_domains)
 
@@ -556,8 +557,8 @@ def main():
 
     all_data = []
 
-    start_date = '2017-08-01'
-    end_date = '2017-08-29'
+    start_date = '2017-08-15'
+    end_date = '2017-09-01'
 
     reddit_data,reddit_json_data = simulation_output_format_from_mongo_data_reddit(db='Jun19-train',
                                                                                    start_date=start_date,
@@ -595,9 +596,10 @@ def main():
     all_data += github_data.to_dict('records')
     
 
-    with open('test_data.json','w') as f:
-        for d in all_data:
-            f.write(json.dumps(d) + '\n')
+    if False:
+        with open('test_data.json','w') as f:
+            for d in all_data:
+                f.write(json.dumps(d) + '\n')
     
 if __name__ == "__main__":
     main()
