@@ -38,17 +38,18 @@ def convert_timestamps(dataset):
             
     return(dataset)
 
-def get_info_id_fields(row):
+def get_info_id_fields(row, fields=['socialsim_keywords']):
 
-    info_ids = row['extension']['socialsim_keywords']
-    
-    if "socialsim_urls_m" in row['extension']:
-        info_ids += row['extension']["socialsim_urls_m"]
-    
+    info_ids = []
+    for f in fields:
+        if f in row['extension'].keys():
+            info_ids += row['extension'][f]
+            
     return list(set(info_ids))
         
 def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-05',
-                                                    collection_name="Reddit_CVE_comments"):
+                                                    collection_name="Reddit_CVE_comments",
+                                                    info_id_fields=['socialsim_keywords']):
 
     print('Extracting reddit data...')
     
@@ -68,8 +69,11 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
                       'urlDomains','informationIDs','platform','communityID']
 
     print('Extracting fields...')
-    comments.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(c) for i,c in comments.iterrows()])
+    comments.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(c,info_id_fields) for i,c in comments.iterrows()])
     comments['n_info_ids'] = comments['informationIDs'].apply(len)
+    wrong_keywords = ["cyber*", "attacks", "malware", "vuln*","encryption", "encrypted", "security", "encry*","hacked","hacker","bot"]
+    comments['wrong_kws'] = comments['informationIDs'].apply(lambda x: not set(x).isdisjoint(wrong_keywords))
+    comments = comments[~comments['wrong_kws']]
     comments = comments.sort_values("n_info_ids",ascending=False)
     comments = comments.drop_duplicates('id_h')
     
@@ -103,8 +107,11 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
                       'urlDomains','informationIDs','platform','communityID']
     
     print('Extracting fields...')
-    posts.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(p) for i,p in posts.iterrows()])
+    posts.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(p,info_id_fields) for i,p in posts.iterrows()])
     posts['n_info_ids'] = posts['informationIDs'].apply(len)
+    posts['wrong_kws'] = posts['informationIDs'].apply(lambda x: not set(x).isdisjoint(wrong_keywords))
+    posts = posts[~posts['wrong_kws']]
+    
     posts = posts.sort_values("n_info_ids",ascending=False)
     posts = posts.drop_duplicates('id_h')
 
@@ -191,7 +198,8 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     s.name = 'informationID'
 
     reddit_data = reddit_data.drop('informationIDs', axis=1).join(s).reset_index(drop=True)
-
+    print(reddit_data['informationID'].value_counts())
+    
     reddit_data = reddit_data.sort_values('nodeTime')
 
     reddit_data = convert_timestamps(reddit_data)
@@ -200,7 +208,8 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     
 
 def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-31',
-                                                     collection_name="Twitter_CVE"):
+                                                     collection_name="Twitter_CVE",
+                                                    info_id_fields=['socialsim_keywords']):
 
     start_datetime = datetime.strptime(start_date,'%Y-%m-%d')
     end_datetime = datetime.strptime(end_date,'%Y-%m-%d')
@@ -226,7 +235,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
 
     print('Extracting fields...')
     tweets = mongo_data
-    tweets.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(t) for i,t in tweets.iterrows()])
+    tweets.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(t,info_id_fields) for i,t in tweets.iterrows()])
     tweets.loc[:,'n_info_ids'] = tweets['informationIDs'].apply(len)
     tweets = tweets.sort_values('n_info_ids',ascending=False)
     tweets = tweets.drop_duplicates('id_str_h')
@@ -249,7 +258,9 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
         tweets.loc[:,'quoted_status.in_reply_to_status_id_h'] = ''
     if 'quoted_status.is_quote_status' not in tweets:
         tweets.loc[:,'quoted_status.is_quote_status'] = False
-
+    if 'quoted_status' not in tweets:
+        tweets.loc[:,'quoted_status'] = None
+        
     #keep track of specific types of reply chains (e.g. retweet of reply, retweet of quote of reply) because the parents and roots will be assigned differently
     tweets.loc[:,'is_retweet_of_reply'] = (~tweets['retweeted_status.in_reply_to_status_id_h'].isna()) & (~(tweets['retweeted_status.in_reply_to_status_id_h'] == ''))
     tweets.loc[:,'is_retweet_of_quote'] = (~tweets['retweeted_status'].isna()) & (~tweets['quoted_status'].isna()) & (tweets['quoted_status.in_reply_to_status_id_h'] == '')              
@@ -483,7 +494,8 @@ def get_text_field(row):
         return text
     
 def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_date='2017-08-01-01',end_date='2017-08-31',
-                                                    collection_name="Github_CVE"):
+                                                    collection_name="Github_CVE",
+                                                    info_id_fields=['socialsim_keywords']):
 
     print('Extraing GitHub data...')
 
@@ -528,7 +540,7 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
 
     mongo_data.loc[:,'platform'] = 'github'
 
-    mongo_data.loc[:,'informationIDs'] = pd.Series(mongo_data['socialsim_details'].apply(lambda x: list(itertools.chain.from_iterable([get_info_id_fields(m) for m in x]))))
+    mongo_data.loc[:,'informationIDs'] = pd.Series(mongo_data['socialsim_details'].apply(lambda x: list(itertools.chain.from_iterable([get_info_id_fields(m,info_id_fields) for m in x]))))
 
     mongo_data.loc[:,'urlDomains'] = mongo_data.apply(get_text_field,axis=1).apply(get_url_domains)
 
@@ -557,13 +569,21 @@ def main():
 
     all_data = []
 
-    start_date = '2017-08-15'
+    start_date = '2017-08-01'
     end_date = '2017-09-01'
 
+    info_type = 'URL'
+
+    if info_type == 'URL':
+        fields = ["socialsim_urls_m"]
+    else:
+        fields = ['socialsim_keywords']
+        
     reddit_data,reddit_json_data = simulation_output_format_from_mongo_data_reddit(db='Jun19-train',
                                                                                    start_date=start_date,
                                                                                    end_date=end_date,
-                                                                                   collection_name="Reddit_CVE_comments")
+                                                                                   collection_name="Reddit_" + info_type + "_comments",
+                                                                                   info_id_fields=fields)
 
     
     print('Reddit output:')
@@ -574,7 +594,8 @@ def main():
     twitter_data,twitter_json_data = simulation_output_format_from_mongo_data_twitter(db='Jun19-train',
                                                                                       start_date=start_date,
                                                                                       end_date=end_date,
-                                                                                      collection_name="Twitter_CVE")
+                                                                                      collection_name="Twitter_" + info_type,
+                                                                                      info_id_fields=fields)
 
 
     print('Twitter output:')
@@ -582,24 +603,25 @@ def main():
     
     all_data += twitter_data.to_dict('records')
 
-    
-    github_data,github_json_data = simulation_output_format_from_mongo_data_github(db='Jun19-train',
-                                                                                   start_date=start_date,
-                                                                                   end_date=end_date,
-                                                                                   collection_name="GitHub_CVE")
+
+    if info_type == 'CVE':
+        github_data,github_json_data = simulation_output_format_from_mongo_data_github(db='Jun19-train',
+                                                                                       start_date=start_date,
+                                                                                       end_date=end_date,
+                                                                                       collection_name="GitHub_" + info_type,
+                                                                                       info_id_fields=fields)
 
     
-    print('Github output:')
-    print(github_data['actionType'].value_counts())
+        print('Github output:')
+        print(github_data['actionType'].value_counts())
    
 
-    all_data += github_data.to_dict('records')
+        all_data += github_data.to_dict('records')
     
 
-    if False:
-        with open('test_data.json','w') as f:
-            for d in all_data:
-                f.write(json.dumps(d) + '\n')
+    with open('test_data.json','w') as f:
+        for d in all_data:
+            f.write(json.dumps(d) + '\n')
     
 if __name__ == "__main__":
     main()
