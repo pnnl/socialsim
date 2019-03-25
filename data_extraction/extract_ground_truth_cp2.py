@@ -49,7 +49,8 @@ def get_info_id_fields(row, fields=['socialsim_keywords']):
         
 def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-05',
                                                     collection_name="Reddit_CVE_comments",
-                                                    info_id_fields=['socialsim_keywords']):
+                                                    info_id_fields=['socialsim_keywords'],
+                                                    domains=[]):
 
     print('Extracting reddit data...')
     
@@ -71,9 +72,11 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     print('Extracting fields...')
     comments.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(c,info_id_fields) for i,c in comments.iterrows()])
     comments['n_info_ids'] = comments['informationIDs'].apply(len)
-    wrong_keywords = ["cyber*", "attacks", "malware", "vuln*","encryption", "encrypted", "security", "encry*","hacked","hacker","bot"]
-    comments['wrong_kws'] = comments['informationIDs'].apply(lambda x: not set(x).isdisjoint(wrong_keywords))
-    comments = comments[~comments['wrong_kws']]
+
+    comments['domain'] = comments['extension'].apply(lambda x: x['socialsim_domain'])
+    if len(domains) > 0:
+        comments = comments[comments['domain'].isin(domains)]
+
     comments = comments.sort_values("n_info_ids",ascending=False)
     comments = comments.drop_duplicates('id_h')
     
@@ -109,11 +112,10 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     print('Extracting fields...')
     posts.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(p,info_id_fields) for i,p in posts.iterrows()])
     posts['n_info_ids'] = posts['informationIDs'].apply(len)
-    posts['wrong_kws'] = posts['informationIDs'].apply(lambda x: not set(x).isdisjoint(wrong_keywords))
-    posts = posts[~posts['wrong_kws']]
-    
-    posts = posts.sort_values("n_info_ids",ascending=False)
-    posts = posts.drop_duplicates('id_h')
+
+    posts['domain'] = posts['extension'].apply(lambda x: x['socialsim_domain'])
+    if len(domains) > 0:
+        posts = posts[posts['domain'].isin(domains)]
 
     posts.rename(columns={'id_h':'nodeID','author_h':'nodeUserID','created_utc':'nodeTime'},
                  inplace=True)
@@ -198,7 +200,6 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     s.name = 'informationID'
 
     reddit_data = reddit_data.drop('informationIDs', axis=1).join(s).reset_index(drop=True)
-    print(reddit_data['informationID'].value_counts())
     
     reddit_data = reddit_data.sort_values('nodeTime')
 
@@ -572,23 +573,27 @@ def main():
     start_date = '2017-08-01'
     end_date = '2017-09-01'
 
-    info_type = 'URL'
+    info_type = 'Malware'
 
     if info_type == 'URL':
         fields = ["socialsim_urls_m"]
+        domains = []
     else:
         fields = ['socialsim_keywords']
+        domains = [info_type]
         
     reddit_data,reddit_json_data = simulation_output_format_from_mongo_data_reddit(db='Jun19-train',
                                                                                    start_date=start_date,
                                                                                    end_date=end_date,
                                                                                    collection_name="Reddit_" + info_type + "_comments",
-                                                                                   info_id_fields=fields)
+                                                                                   info_id_fields=fields,
+                                                                                   domains=domains)
 
     
     print('Reddit output:')
     print(reddit_data['actionType'].value_counts())
-    
+    print(reddit_data['informationID'].value_counts())
+
     all_data += reddit_data.to_dict('records')
     
     twitter_data,twitter_json_data = simulation_output_format_from_mongo_data_twitter(db='Jun19-train',
@@ -600,6 +605,8 @@ def main():
 
     print('Twitter output:')
     print(twitter_data['actionType'].value_counts())
+    print(twitter_data['informationID'].value_counts())
+
     
     all_data += twitter_data.to_dict('records')
 
@@ -614,7 +621,8 @@ def main():
     
         print('Github output:')
         print(github_data['actionType'].value_counts())
-   
+        print(github_data['informationID'].value_counts())
+
 
         all_data += github_data.to_dict('records')
     
