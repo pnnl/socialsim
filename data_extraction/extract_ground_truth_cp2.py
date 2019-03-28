@@ -75,8 +75,8 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
 
     comments['domain'] = comments['extension'].apply(lambda x: x['socialsim_domain'])
     if len(domains) > 0:
-        comments = comments[comments['domain'].isin(domains)]
-
+        comments['informationIDs'] = comments.apply(lambda x: x['informationIDs'] if x['domain'] in domains else [],axis=1)
+        
     comments = comments.sort_values("n_info_ids",ascending=False)
     comments = comments.drop_duplicates('id_h')
     
@@ -115,8 +115,9 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
 
     posts['domain'] = posts['extension'].apply(lambda x: x['socialsim_domain'])
     if len(domains) > 0:
-        posts = posts[posts['domain'].isin(domains)]
-
+        posts['informationIDs'] = posts.apply(lambda x: x['informationIDs'] if x['domain'] in domains else [],axis=1)
+        
+        
     posts.rename(columns={'id_h':'nodeID','author_h':'nodeUserID','created_utc':'nodeTime'},
                  inplace=True)
     posts.loc[:,'nodeID']=['t3_' + x for x in posts['nodeID']]
