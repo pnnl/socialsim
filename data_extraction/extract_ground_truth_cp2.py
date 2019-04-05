@@ -10,7 +10,7 @@ import itertools
 
 from datetime import datetime
 
-from twitter_cascade_reconstruction import full_reconstruction
+from twitter_cascade_reconstruction import full_reconstruction,get_reply_cascade_root_tweet
 
 def get_url_domains(x,prefix='url: '):
 
@@ -38,15 +38,151 @@ def convert_timestamps(dataset):
             
     return(dataset)
 
-def get_info_id_fields(row, fields=['socialsim_keywords']):
+def get_info_id_fields(row, fields=['socialsim_keywords'],dict_field=False):
 
     info_ids = []
     for f in fields:
         if f in row['extension'].keys():
-            info_ids += row['extension'][f]
+            if not dict_field:
+                info_ids += row['extension'][f]
+            else:
+                info_ids += [k['keyword'] for k in row['extension'][f]]
             
     return list(set(info_ids))
+
+def simulation_output_format_from_mongo_data_telegram(db='Jun19-train',
+                                                      start_date='2017-08-01',end_date='2017-08-05',
+                                                      collection_name="Telegram_Coins",
+                                                      info_id_fields=['socialsim_keywords'],
+                                                      domains=[]):
+
+    print('Extracting telegram data...')
+    
+    ############## Mongo queries ####################################
+    client = MongoClient()
+    collection = client[db][collection_name]
+
+    print('Querying mongo...')
+    mongo_json_data = list(collection.find({"norm.timestamp":{"$gte":start_date + "T00:00:00Z",
+                                                              "$lt":end_date + "T00:00:00Z"}}))        
+    ############## End mongo queries ####################################
+
+    data = pd.DataFrame(mongo_json_data)
+    
+    output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime',
+                      'urlDomains','informationIDs','platform','communityID']
+
+    print('Extracting fields...')
+    data.loc[:,'informationIDs'] = pd.Series([get_info_id_fields(c,info_id_fields,dict_field=True) for i,c in data.iterrows()])
+    data = data.drop_duplicates('uid_h')
+    
+    data.loc[:,'actionType']=['message']*len(data)
+
+    data.loc[:,'nodeTime'] = data['norm'].apply(lambda x: x['timestamp'])
+    
+    data.loc[:,'communityID'] = data['doc'].apply(lambda x: x['peer']['username'] if 'peer' in x.keys() else None)
+
+    data.loc[:,'nodeID'] = data['doc'].apply(lambda x: str(x['to_id']['channel_id']) + '_' + str(x['id']))
+
+    data.loc[:,'nodeUserID'] = data['doc'].apply(lambda x: x['from_id_h'] if 'from_id_h' in x.keys() else None)
+    data.loc[data['nodeUserID'].isnull(),'nodeUserID'] = data.loc[data['nodeUserID'].isnull(),'norm'].apply(lambda x: x['author'])
+
+    data.loc[:,'urlDomains'] = data['norm'].apply(lambda x: get_url_domains(x["body_m"]))
+    data.loc[:,'platform'] = 'telegram'
+    
+    data.loc[:,'parentID'] = data['doc'].apply(lambda x: str(x['fwd_from']['channel_id']) + '_' + str(x['fwd_from']['channel_post']) if 'fwd_from' in x.keys() and not x['fwd_from'] is None and not x['fwd_from']['channel_id'] is None and not x['fwd_from']['channel_post'] is None else None)
+
+    data.loc[:,'parentID'] = data['doc'].apply(lambda x: str(x['to_id']['channel_id']) + '_' + str(x['reply_to_msg_id']) if 'reply_to_msg_id' in x.keys() and not x['reply_to_msg_id'] is None else None)
+
+    data.loc[:,'rootID'] = '?'
+    data.loc[data['parentID'].isna(),'rootID'] = data.loc[data['parentID'].isna(),'nodeID']
+
+    data.loc[data['parentID'].isna(),'parentID'] = data.loc[data['parentID'].isna(),'nodeID']
+
+    data = data[data['parentID'].isin(list(set(data['nodeID'])))]
+
+    data = data[output_columns]
+    
+    data = get_reply_cascade_root_tweet(data)
         
+    #remove broken portions
+    data = data[data['rootID'].isin(list(set(data['nodeID'])))]
+
+    print('Sorting...')
+    data = data.sort_values('nodeTime')            
+
+    #initialize info ID column with empty lists
+    data['threadInfoIDs'] = [[] for i in range(len(data))]
+    
+    #for some reason having a non-object column in the dataframe messes up the assignment of lists to individual cell values
+    #remove it temporarily and add back later
+    nodeTimes = data['nodeTime']
+    data = data[[c for c in data.columns if c != 'nodeTime']]
+    
+    #get children of node
+    def get_children(nodeID):
+
+        children = data[data['parentID'] == nodeID]['nodeID']
+        children = children[children.values != nodeID]
+        
+        return(children)
+
+
+    #all replies/fwds of a message mentioning a unit of information are also assigned that unit of information
+    def add_info_to_children(nodeID,list_info=[]):
+
+        infos = list(data[data['nodeID'] == nodeID]['informationIDs'].values[0])
+
+        list_info = list_info.copy()
+
+        children = get_children(nodeID)
+        
+        if len(children) > 0:
+
+            list_info += infos
+    
+            if len(list_info) > 0 and len(children) > 1:
+                data.loc[children.index.values,'threadInfoIDs'] = [list_info for i in range(len(children))]
+            elif len(list_info) > 0 and len(children) == 1:
+                data.at[children.index[0],'threadInfoIDs'] = list_info
+
+            for child in children.values:
+                add_info_to_children(child,list_info)
+
+    print('Adding information IDs to children...')
+    #for each thread in data, propagate infromation IDs to children
+    roots = data['rootID'].unique()
+    for r,root in enumerate(roots):
+        add_info_to_children(root)
+        if r % 50 == 0:
+            print('{}/{}'.format(r,len(roots)))
+
+
+    data['nodeTime'] = nodeTimes
+    
+    data['informationIDs'] = data.apply(lambda x: list(set(x['informationIDs'] + x['threadInfoIDs'])),axis=1)
+
+    
+    data = data[data['informationIDs'].str.len() > 0]
+    data = data.drop('threadInfoIDs',axis=1)
+    
+    
+    print('Expanding events...')
+    #expand lists of info IDs into seperate rows (i.e. an individual event is duplicated if it pertains to multiple information IDs)
+    s = data.apply(lambda x: pd.Series(x['informationIDs']), axis=1).stack().reset_index(level=1, drop=True)
+    s.name = 'informationID'
+
+    data = data.drop('informationIDs', axis=1).join(s).reset_index(drop=True)
+    
+    data = data.sort_values('nodeTime')
+
+    data = convert_timestamps(data)
+
+    data = data[~data['communityID'].isnull()]
+    
+    return data,mongo_json_data
+   
+
 def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-05',
                                                     collection_name="Reddit_CVE_comments",
                                                     info_id_fields=['socialsim_keywords'],
@@ -65,6 +201,7 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     ############## End mongo queries ####################################
 
     comments = pd.DataFrame(mongo_json_data_comments)
+
     
     output_columns = ['nodeID', 'nodeUserID', 'parentID', 'rootID', 'actionType', 'nodeTime',
                       'urlDomains','informationIDs','platform','communityID']
@@ -158,7 +295,7 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
         return(children)
 
 
-    #all comments on a post/comment mentioning a unit of information are also assigned that unit of information
+   # all comments on a post/comment mentioning a unit of information are also assigned that unit of information
     def add_info_to_children(nodeID,list_info=[]):
 
         infos = list(reddit_data[reddit_data['nodeID'] == nodeID]['informationIDs'].values[0])
@@ -272,7 +409,7 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     
     tweets.loc[:,'is_quote_of_reply'] = (~tweets['quoted_status.in_reply_to_status_id_h'].isna()) & (~(tweets['quoted_status.in_reply_to_status_id_h'] == '')) & (tweets['retweeted_status'].isna())
     tweets.loc[:,'is_quote_of_quote'] = (~tweets['quoted_status.is_quote_status'].isna()) & (tweets['quoted_status.is_quote_status'] == True) & (tweets['retweeted_status'].isna())
-    tweets.loc[:,'is_quote'] = (~tweets['quoted_status'].isna()) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (tweets['retweeted_status'].isna())
+    tweets.loc[:,'is_quote'] = (~tweets['quoted_status'].isna()) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (tweets['retweeted_status'].isna()) & (~tweets['is_reply']) 
 
     tweets.loc[:,'is_orig'] = (~tweets['is_reply']) & (~tweets['is_retweet']) & (~tweets['is_quote']) & (~tweets['is_quote_of_reply']) & (~tweets['is_quote_of_quote']) & (~tweets['is_retweet_of_reply']) & (~tweets['is_retweet_of_quote_of_reply']) & (~tweets['is_retweet_of_quote'])
 
@@ -495,11 +632,12 @@ def get_text_field(row):
             
         return text
     
-def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_date='2017-08-01-01',end_date='2017-08-31',
+def simulation_output_format_from_mongo_data_github(db='Jun2019-train',
+                                                    start_date='2017-08-01-01',end_date='2017-08-31',
                                                     collection_name="Github_CVE",
                                                     info_id_fields=['socialsim_keywords']):
 
-    print('Extraing GitHub data...')
+    print('Extracting GitHub data...')
 
     ############## Mongo queries ####################################
     #we are storing the github data in two collections, one for events that mention an info ID and one for
@@ -563,6 +701,7 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',start_dat
 
     events = convert_timestamps(events)
 
+    events = events.drop_duplicates([c for c in events.columns if c != 'urlDomains'])
     
     return events, mongo_data_json
 
@@ -571,45 +710,77 @@ def main():
 
     all_data = []
 
-    start_date = '2017-08-01'
+    start_date = '2017-08-20'
     end_date = '2017-09-01'
 
-    info_type = 'Malware'
+    info_type = 'Coins'
 
+    with open("keyword_map.json","r") as f:
+        keyword_map = json.load(f)
+
+    kmap = {}
+    for k,v in keyword_map.items():
+        for kw in v:
+            kmap[kw] = k
+            kmap[kw.lower()] = k
+                
     if info_type == 'URL':
         fields = ["socialsim_urls_m"]
         domains = []
     else:
         fields = ['socialsim_keywords']
         domains = [info_type]
+
+
+    if info_type == 'Coins':
+        telegram_data,telegram_json_data = simulation_output_format_from_mongo_data_telegram(db='Jun19-train',
+                                                                                             start_date=start_date,
+                                                                                             end_date=end_date,
+                                                                                             collection_name="Telegram_" + info_type,
+                                                                                             info_id_fields=fields,
+                                                                                             domains=domains)
+
+        telegram_data['informationID'] = telegram_data['informationID'].map(kmap)
+        print(telegram_data['informationID'].value_counts())
+
+        all_data += telegram_data.to_dict('records')
+
+    
+
+    if info_type in ['CVE','Malware','URL']:
+        reddit_data,reddit_json_data = simulation_output_format_from_mongo_data_reddit(db='Jun19-train',
+                                                                                       start_date=start_date,
+                                                                                       end_date=end_date,
+                                                                                       collection_name="Reddit_" + info_type + "_comments",
+                                                                                       info_id_fields=fields,
+                                                                                       domains=domains)
+
+    
+        print('Reddit output:')
+        print(reddit_data['actionType'].value_counts())
+        print(reddit_data['informationID'].value_counts())
+
+        all_data += reddit_data.to_dict('records')
+
+    if info_type in ['CVE','Malware','URL','Coins']:
+
+        twitter_data,twitter_json_data = simulation_output_format_from_mongo_data_twitter(db='Jun19-train',
+                                                                                          start_date=start_date,
+                                                                                          end_date=end_date,
+                                                                                          collection_name="Twitter_" + info_type,
+                                                                                          info_id_fields=fields)
+
+        if info_type == 'Coins':
+            twitter_data['informationID'] = twitter_data['informationID'].map(kmap)
+            print(twitter_data)
+            twitter_data = twitter_data.drop_duplicates(['nodeID','informationID'])
+            print(twitter_data)
+            
+        print('Twitter output:')
+        print(twitter_data['actionType'].value_counts())
+        print(twitter_data['informationID'].value_counts())
         
-    reddit_data,reddit_json_data = simulation_output_format_from_mongo_data_reddit(db='Jun19-train',
-                                                                                   start_date=start_date,
-                                                                                   end_date=end_date,
-                                                                                   collection_name="Reddit_" + info_type + "_comments",
-                                                                                   info_id_fields=fields,
-                                                                                   domains=domains)
-
-    
-    print('Reddit output:')
-    print(reddit_data['actionType'].value_counts())
-    print(reddit_data['informationID'].value_counts())
-
-    all_data += reddit_data.to_dict('records')
-    
-    twitter_data,twitter_json_data = simulation_output_format_from_mongo_data_twitter(db='Jun19-train',
-                                                                                      start_date=start_date,
-                                                                                      end_date=end_date,
-                                                                                      collection_name="Twitter_" + info_type,
-                                                                                      info_id_fields=fields)
-
-
-    print('Twitter output:')
-    print(twitter_data['actionType'].value_counts())
-    print(twitter_data['informationID'].value_counts())
-
-    
-    all_data += twitter_data.to_dict('records')
+        all_data += twitter_data.to_dict('records')
 
 
     if info_type == 'CVE':
@@ -628,7 +799,7 @@ def main():
         all_data += github_data.to_dict('records')
     
 
-    with open('test_data.json','w') as f:
+    with open('test_data_coins.json','w') as f:
         for d in all_data:
             f.write(json.dumps(d) + '\n')
     
