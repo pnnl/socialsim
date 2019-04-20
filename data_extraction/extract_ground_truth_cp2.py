@@ -7,6 +7,7 @@ import pprint
 import re
 import json
 import itertools
+import networkx as nx
 
 from datetime import datetime
 
@@ -50,11 +51,78 @@ def get_info_id_fields(row, fields=['socialsim_keywords'],dict_field=False):
 
     return list(set(info_ids))
 
+
+def user_alignment(db='Jun19-train',
+                   collection_name='user_alignment',
+                   platforms = ['github','reddit','twitter']):
+
+    """
+    Standardize user IDs across platforms based on released user alignment data.
+    The user aligment data is stored in two collections:
+    1. user_alignment: 2019JunCP/Exploit/Username_Alignment/User_Alignment/*.json
+    2. user_alignment_external: 2019JunCP/Exploit/Username_Alignment/User_Alignment_External/*json
+    """
+    
+    client = MongoClient()
+    collection = client[db][collection_name]
+
+    mongo_data = list(collection.find({"score":{"$gt":0.9}}))
+
+    df = pd.DataFrame(mongo_data)
+
+    dfs = []
+    for i,p1 in enumerate(platforms):
+        for j,p2 in enumerate(platforms[i:]):
+            if p2 != p1:
+                df_map = df[[p1 + '_h',p2+'_h','score']].dropna()
+                df_map.columns = ['username1','username2','score']
+
+                #if username has multiple matches keep the highest score
+                df_map = df_map.sort_values('score',ascending=False)
+                df_map = df_map.drop_duplicates(subset=['username2'])
+                df_map = df_map.drop_duplicates(subset=['username1'])
+                
+                df_map = df_map.drop('score',axis=1)
+                df_map = df_map[df_map['username1'] != df_map['username2']]
+
+                dfs.append(df_map)
+
+    client = MongoClient()
+    collection = client[db]['user_alignment_external']
+
+    mongo_data = list(collection.find({}))
+
+    df_external = pd.DataFrame(mongo_data)
+
+    for i,p1 in enumerate(platforms):
+        for j,p2 in enumerate(platforms[i:]):
+            if p2 != p1:
+                df_map = df_external[[p1 + '_h',p2+'_h']].dropna()
+                df_map.columns = ['username1','username2']
+                df_map = df_map[df_map['username1'] != df_map['username2']]
+                
+                dfs.append(df_map)
+       
+    edge_df = pd.concat(dfs,axis=0)
+    edge_df = edge_df.drop_duplicates()
+
+    G = nx.from_pandas_edgelist(edge_df,source='username1',target='username2')
+
+    components = nx.connected_components(G)
+    username_map = {}
+    for comp in components:
+        comp = list(comp)
+        for i in range(len(comp) - 1):
+            username_map[comp[i+1]] = comp[0]
+
+    return(username_map)
+        
 def simulation_output_format_from_mongo_data_telegram(db='Jun19-train',
                                                       start_date='2017-08-01',end_date='2017-08-05',
                                                       collection_name="Telegram_Coins",
                                                       info_id_fields=['socialsim_keywords'],
-                                                      domains=[]):
+                                                      domains=[],
+                                                      username_map = {}):
 
     print('Extracting telegram data...')
     
@@ -86,7 +154,8 @@ def simulation_output_format_from_mongo_data_telegram(db='Jun19-train',
 
     data.loc[:,'nodeUserID'] = data['doc'].apply(lambda x: x['from_id_h'] if 'from_id_h' in x.keys() else None)
     data.loc[data['nodeUserID'].isnull(),'nodeUserID'] = data.loc[data['nodeUserID'].isnull(),'norm'].apply(lambda x: x['author'])
-
+    data.loc[:,'nodeUserID'] = data['nodeUserID'].replace(username_map)
+    
     data.loc[:,'urlDomains'] = data['norm'].apply(lambda x: get_url_domains(x["body_m"]))
     data.loc[:,'platform'] = 'telegram'
     
@@ -186,7 +255,8 @@ def simulation_output_format_from_mongo_data_telegram(db='Jun19-train',
 def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-05',
                                                     collection_name="Reddit_CVE_comments",
                                                     info_id_fields=['socialsim_keywords'],
-                                                    domains=[]):
+                                                    domains=[],
+                                                    username_map = {}):
 
     print('Extracting reddit data...')
     
@@ -269,6 +339,9 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     
     reddit_data = pd.concat([comments[output_columns],posts[output_columns]],ignore_index=True)
     reddit_data = reddit_data.reset_index(drop=True)
+
+    reddit_data.loc[:,'nodeUserID'] = reddit_data['nodeUserID'].replace(username_map)
+
     
     #remove broken portions
     reddit_data = reddit_data[reddit_data['parentID'].isin(list(set(reddit_data['nodeID'])))]
@@ -347,8 +420,9 @@ def simulation_output_format_from_mongo_data_reddit(db='Jun19-train',start_date=
     
 
 def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date='2017-08-01',end_date='2017-08-31',
-                                                    collection_name="Twitter_CVE",
-                                                    info_id_fields=['socialsim_keywords']):
+                                                     collection_name="Twitter_CVE",
+                                                     info_id_fields=['socialsim_keywords'],
+                                                     username_map = {}):
 
     start_datetime = datetime.strptime(start_date,'%Y-%m-%d')
     end_datetime = datetime.strptime(end_date,'%Y-%m-%d')
@@ -389,7 +463,8 @@ def simulation_output_format_from_mongo_data_twitter(db='Jun19-train',start_date
     tweets.loc[:,'nodeTime'] = tweets['nodeTime'].apply(lambda x: datetime.strftime(x,'%Y-%m-%dT%H:%M:%SZ'))
 
     tweets.loc[:,'nodeUserID'] = tweets['user'].apply(lambda x: x['id_str_h'])
-
+    tweets.loc[:,'nodeUserID'] = tweets['nodeUserID'].replace(username_map)
+    
     tweets.loc[:,'is_reply'] = (tweets['in_reply_to_status_id_str_h'] != '') & (~tweets['in_reply_to_status_id_str_h'].isna())
 
     if 'retweeted_status.in_reply_to_status_id_str_h' not in tweets:
@@ -637,7 +712,8 @@ def get_text_field(row):
 def simulation_output_format_from_mongo_data_github(db='Jun2019-train',
                                                     start_date='2017-08-01-01',end_date='2017-08-31',
                                                     collection_name="Github_CVE",
-                                                    info_id_fields=['socialsim_keywords']):
+                                                    info_id_fields=['socialsim_keywords'],
+                                                    username_map = {}):
 
     print('Extracting GitHub data...')
 
@@ -680,6 +756,8 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',
         mongo_data.rename(columns={'created_at': 'nodeTime',
                                    'type':'actionType'}, inplace=True)
 
+    mongo_data.loc[:,'nodeUserID'] = mongo_data['nodeUserID'].replace(username_map)
+        
     mongo_data.loc[:,'platform'] = 'github'
 
     mongo_data.loc[:,'informationIDs'] = pd.Series(mongo_data['socialsim_details'].apply(lambda x: list(itertools.chain.from_iterable([get_info_id_fields(m,info_id_fields) for m in x]))))
@@ -707,15 +785,22 @@ def simulation_output_format_from_mongo_data_github(db='Jun2019-train',
     
     return events, mongo_data_json
 
-
+                        
 def main():
 
+    use_user_alignment = True
+
+    if use_user_alignment:
+        username_map = user_alignment()
+    else:
+        username_map = {}
+        
     all_data = []
 
-    start_date = '2016-10-20'
-    end_date = '2016-10-29'
+    start_date = '2017-08-01'
+    end_date = '2017-09-01'
 
-    info_type = 'CVE'
+    info_type = 'Malware'
 
     with open("keyword_map.json","r") as f:
         keyword_map = json.load(f)
@@ -755,7 +840,8 @@ def main():
                                                                                        end_date=end_date,
                                                                                        collection_name="Reddit_" + info_type + "_comments",
                                                                                        info_id_fields=fields,
-                                                                                       domains=domains)
+                                                                                       domains=domains,
+                                                                                       username_map=username_map)
 
     
         print('Reddit output:')
@@ -770,7 +856,9 @@ def main():
                                                                                           start_date=start_date,
                                                                                           end_date=end_date,
                                                                                           collection_name="Twitter_" + info_type,
-                                                                                          info_id_fields=fields)
+                                                                                          info_id_fields=fields,
+                                                                                          username_map=username_map)
+
 
         if info_type == 'Coins':
             twitter_data['informationID'] = twitter_data['informationID'].map(kmap)
@@ -790,7 +878,8 @@ def main():
                                                                                        start_date=start_date,
                                                                                        end_date=end_date,
                                                                                        collection_name="GitHub_" + info_type,
-                                                                                       info_id_fields=fields)
+                                                                                       info_id_fields=fields,
+                                                                                       username_map=username_map)
 
     
         print('Github output:')
@@ -801,7 +890,7 @@ def main():
         all_data += github_data.to_dict('records')
     
 
-    with open('twitter_debugging.json','w') as f:
+    with open('malware.json','w') as f:
         for d in all_data:
             f.write(json.dumps(d) + '\n')
     
